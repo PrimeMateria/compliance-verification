@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PrimeTrestleAttestation",
+  "description": "PRIME batch compliance-trestle authorization package assembly attestation contract",
+  "type": "object",
+  "required": [
+    "assembled_at",
+    "generator",
+    "trestle_version",
+    "runner",
+    "image_sha256",
+    "input_evidence_sha256",
+    "outputs",
+    "schema_valid"
+  ],
+  "properties": {
+    "assembled_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "generator": {
+      "type": "string",
+      "const": "compliance-trestle"
+    },
+    "trestle_version": {
+      "type": "string"
+    },
+    "runner": {
+      "type": "string",
+      "enum": ["container", "native", "virtualenv"]
+    },
+    "image_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "input_evidence_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "outputs": {
+      "type": "object",
+      "required": [
+        "system_security_plan_sha256",
+        "assessment_plan_sha256",
+        "assessment_results_sha256"
+      ],
+      "properties": {
+        "system_security_plan_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "assessment_plan_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "assessment_results_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "schema_valid": {
+      "type": "boolean",
+      "const": true
+    }
+  },
+  "additionalProperties": false
+}

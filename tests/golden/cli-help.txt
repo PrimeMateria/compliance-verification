@@ -1,0 +1,22 @@
+OSCAL Continuous Verification & Compiler Orchestrator
+
+Usage: cargo-oscal <COMMAND>
+
+Commands:
+  build             Build and orchestrate verification across Kani, Charon/Aeneas, and Lean 4
+  evaluate-gate     Evaluate Continuous Authorization Gate rules against verification artifacts
+  verify-manifests  Verify package metadata manifests against schema and evidence rules
+  package           Assemble NIST OSCAL authorization package from evidence and component definitions
+  assemble-pcrate   Assemble portable, offline-verifiable .pcrate bundle (ADR-0017)
+  verify-pcrate     Verify .pcrate bundle hermetically offline across six invariants (ADR-0017)
+  inspect-pcrate    Inspect contents, gate decision, coverage, and boundaries of a .pcrate bundle
+  help              Print this message or the help of the given subcommand(s)
+
+Options:
+  -h, --help     Print help
+  -V, --version  Print version
+
+EXIT CODES:
+    0    Success (verification passed / gate satisfied / promotion complete)
+    1    Gate violation, tier mismatch, active POA&M defect, or manifest error
+    2    Promotion forbidden (policy mode 'never')

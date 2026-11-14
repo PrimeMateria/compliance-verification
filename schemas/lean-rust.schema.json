@@ -1,0 +1,269 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "GatePolicyConfig",
+  "description": "Declarative CI/CD Continuous Authorization Gate Policy per ADR-0015 and INV-PRIME-007",
+  "type": "object",
+  "required": ["policy", "promotion"],
+  "definitions": {
+    "evidence_tier": {
+      "type": "string",
+      "enum": ["static_check", "test", "symbolic", "formal_kernel"],
+      "description": "Hierarchical verification rigor: static_check (1) < test (2) < symbolic (3) < formal_kernel (4)"
+    },
+    "declaration_kind": {
+      "type": "string",
+      "enum": ["implements", "requires", "inherited"],
+      "description": "Control satisfaction mechanism: 'implements' (authoritative code & evidence), 'requires' (dependency obligation without local evidence), 'inherited' (external CSP authorization boundary)"
+    },
+    "package_control_declaration": {
+      "type": "object",
+      "required": ["id"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "NIST SP 800-53 or custom control identifier"
+        },
+        "kind": {
+          "$ref": "#/definitions/declaration_kind",
+          "default": "implements"
+        },
+        "declaration_kind": {
+          "$ref": "#/definitions/declaration_kind"
+        },
+        "required_tier": {
+          "$ref": "#/definitions/evidence_tier"
+        },
+        "evidence": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "source": {
+          "type": "string",
+          "description": "For kind=inherited, reference to [catalog.inheritance.<source>] in lean-rust.toml"
+        },
+        "attestation_expiry": {
+          "type": "string",
+          "description": "RFC 3339 timestamp for inherited authorization attestation expiry"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "properties": {
+    "policy": {
+      "type": "object",
+      "required": ["require_kani_pass", "forbid_lean_sorry", "min_control_coverage", "coverage_basis", "waiver_mode"],
+      "properties": {
+        "require_kani_pass": {
+          "type": "boolean",
+          "description": "Require all Kani CBMC proof harnesses to pass"
+        },
+        "forbid_lean_sorry": {
+          "type": "boolean",
+          "description": "Fail gate if any Lean 4 theorem relies on unproven 'sorry' axioms"
+        },
+        "min_control_coverage": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "description": "Minimum fraction of controls whose evidence satisfies or exceeds required_tier (0.0 - 1.0)"
+        },
+        "min_default_tier": {
+          "$ref": "#/definitions/evidence_tier",
+          "default": "test",
+          "description": "Default required evidence tier for controls that do not specify required_tier"
+        },
+        "coverage_basis": {
+          "type": "string",
+          "enum": ["unique_controls", "declared_controls", "baseline_catalog"],
+          "default": "declared_controls",
+          "description": "Basis for calculating coverage: 'unique_controls' counts distinct canonical control IDs; 'declared_controls' counts package-level declarations; 'baseline_catalog' counts in-scope catalog controls"
+        },
+        "waiver_mode": {
+          "type": "string",
+          "enum": ["downgrade", "risk_accepted", "suppress"],
+          "default": "downgrade",
+          "description": "Semantics when waivers are present: 'downgrade' marks finding target as other and counts as tier-unsatisfied; 'risk_accepted' emits formal POA&M item and permits gate bypass; 'suppress' retains control in denominator, excludes from AR, and emits suppressed-findings.json"
+        },
+        "waived_controls": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Explicit list of waived control identifiers"
+        },
+        "risk_accepted": {
+          "type": "object",
+          "description": "Threshold caps and requirements for risk-accepted waivers",
+          "properties": {
+            "max_count": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Maximum absolute count of risk-accepted controls allowed before gate fails"
+            },
+            "max_fraction": {
+              "type": "number",
+              "minimum": 0.0,
+              "maximum": 1.0,
+              "description": "Maximum allowable fraction (0.0 - 1.0) of controls that can be waived as risk-accepted"
+            },
+            "requires_poam_milestone": {
+              "type": "boolean",
+              "default": true,
+              "description": "Require explicit POA&M milestone and target date for risk-accepted items"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "promotion": {
+      "type": "object",
+      "required": ["mode", "staging_dir", "release_dir"],
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": ["auto", "manual", "never"],
+          "default": "auto",
+          "description": "Promotion behavior on gate PASS: 'auto' promotes staging to release_dir and exits 0; 'manual' validates gate, retains staging without promoting, exits 0; 'never' forbids promotion, exits 2 if promotion attempted"
+        },
+        "staging_dir": {
+          "type": "string",
+          "description": "Staging directory for unverified or rejected OSCAL artifacts"
+        },
+        "release_dir": {
+          "type": "string",
+          "description": "Release directory where verified OSCAL artifacts are promoted on pass"
+        }
+      },
+      "additionalProperties": false
+    },
+    "catalog": {
+      "type": "object",
+      "properties": {
+        "baseline": {
+          "type": "string",
+          "description": "Catalog baseline, e.g. NIST_SP_800_53_Rev5"
+        },
+        "profile": {
+          "type": "string",
+          "description": "Catalog profile or scoping baseline, e.g. FedRAMP_Moderate, FedRAMP_High"
+        },
+        "inheritance": {
+          "type": "object",
+          "description": "External platform and CSP leveraged authorizations per ADR-0005 §5.6",
+          "additionalProperties": {
+            "type": "object",
+            "required": ["title", "leveraged_authorization_uuid", "attestation_expiry", "controls"],
+            "properties": {
+              "title": { "type": "string" },
+              "leveraged_authorization_uuid": { "type": "string" },
+              "boundary_description": { "type": "string" },
+              "attestation_expiry": { "type": "string" },
+              "controls": {
+                "type": "array",
+                "items": { "type": "string" }
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "tailoring": {
+          "type": "object",
+          "properties": {
+            "scope": {
+              "type": "string",
+              "enum": ["low", "moderate", "high", "custom"]
+            },
+            "in_scope_controls": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "include_controls": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "excluded_controls": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "exclude_controls": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "monitoring": {
+      "type": "object",
+      "properties": {
+        "audit_ttl": {
+          "type": "string",
+          "default": "7d",
+          "description": "Evidence staleness time-to-live duration, e.g. '24h', '7d'"
+        },
+        "fail_on_stale": {
+          "type": "boolean",
+          "default": false,
+          "description": "Exit with code 2 on E-OSCAL-015 evidence staleness"
+        },
+        "fail_on_drift": {
+          "type": "boolean",
+          "default": true,
+          "description": "Exit with code 2 on E-OSCAL-014 catalog hash drift"
+        },
+        "fail_on_expired_attestation": {
+          "type": "boolean",
+          "default": true,
+          "description": "Exit with code 2 on E-OSCAL-012 lapsed CSP inheritance attestation"
+        },
+        "fail_on_overdue": {
+          "type": "boolean",
+          "default": false,
+          "description": "Exit with code 2 on overdue POA&M SLA items"
+        },
+        "require_poam": {
+          "type": "boolean",
+          "default": false,
+          "description": "Require authoritative poam.json to exist; missing file triggers operational error exit 1"
+        }
+      },
+      "additionalProperties": false
+    },
+    "categories": {
+      "type": "object",
+      "properties": {
+        "cat1": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Severity levels mapping to Category 1 findings"
+        },
+        "cat2": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Severity levels mapping to Category 2 findings"
+        },
+        "cat3": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Severity levels mapping to Category 3 findings"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

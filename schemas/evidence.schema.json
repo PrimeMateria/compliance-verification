@@ -1,0 +1,238 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PrimeVerificationEvidence",
+  "description": "PRIME native continuous authorization build-time evidence contract per Milestone 6 simplification RFC",
+  "type": "object",
+  "required": [
+    "version",
+    "build",
+    "policy",
+    "components",
+    "controls",
+    "waivers",
+    "inheritance",
+    "falsifiability",
+    "coverage",
+    "summary"
+  ],
+  "properties": {
+    "version": {
+      "type": "string",
+      "enum": ["1.0.0", "1.1.0"]
+    },
+    "build": {
+      "type": "object",
+      "required": ["timestamp", "git_sha", "toolchains"],
+      "properties": {
+        "timestamp": { "type": "string", "format": "date-time" },
+        "git_sha": { "type": "string" },
+        "toolchains": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "policy": {
+      "type": "object",
+      "required": ["coverage_basis", "min_control_coverage", "min_default_tier", "waiver_mode"],
+      "properties": {
+        "coverage_basis": {
+          "type": "string",
+          "enum": ["declared_controls", "unique_controls", "baseline_catalog"]
+        },
+        "min_control_coverage": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0
+        },
+        "min_default_tier": {
+          "type": "string",
+          "enum": ["formal_kernel", "symbolic", "test", "static_check"]
+        },
+        "waiver_mode": {
+          "type": "string",
+          "enum": ["downgrade", "risk_accepted"]
+        },
+        "risk_accepted_max_count": { "type": "integer", "minimum": 0 },
+        "risk_accepted_max_fraction": { "type": "number", "minimum": 0.0, "maximum": 1.0 }
+      },
+      "additionalProperties": false
+    },
+    "components": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "title", "source_type"],
+        "properties": {
+          "id": { "type": "string" },
+          "title": { "type": "string" },
+          "source_type": { "type": "string", "enum": ["workspace", "inherited"] },
+          "attestation_expiry": { "type": "string", "format": "date-time" },
+          "is_active": { "type": "boolean" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "controls": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "component",
+          "kind",
+          "required_tier",
+          "achieved_tier",
+          "adjudicated_state",
+          "tier_satisfied",
+          "evidence_sources"
+        ],
+        "properties": {
+          "id": { "type": "string" },
+          "component": { "type": "string" },
+          "kind": { "type": "string", "enum": ["implements", "requires", "inherited"] },
+          "required_tier": {
+            "type": "string",
+            "enum": ["formal_kernel", "symbolic", "test", "static_check"]
+          },
+          "achieved_tier": {
+            "type": "string",
+            "enum": ["formal_kernel", "symbolic", "test", "static_check"]
+          },
+          "adjudicated_state": {
+            "type": "string",
+            "enum": ["satisfied", "risk_accepted", "unsatisfied", "expired"]
+          },
+          "tier_satisfied": { "type": "boolean" },
+          "evidence_sources": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["tool", "passed"],
+              "properties": {
+                "tool": { "type": "string", "enum": ["kani", "lean", "cargo_test"] },
+                "passed": { "type": "boolean" },
+                "sorry_free": { "type": "boolean" },
+                "reason": { "type": "string" },
+                "output_file": { "type": "string" },
+                "sha256": { "type": "string" }
+              },
+              "additionalProperties": false
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "waivers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["control_id", "mode", "cap_count", "cap_fraction", "adjudication"],
+        "properties": {
+          "control_id": { "type": "string" },
+          "mode": { "type": "string", "enum": ["downgrade", "risk_accepted"] },
+          "cap_count": { "type": "integer", "minimum": 0 },
+          "cap_fraction": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+          "adjudication": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "inheritance": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["key", "source_id", "controls", "attestation_sha256", "attestation_expiry", "is_active"],
+        "properties": {
+          "key": { "type": "string" },
+          "source_id": { "type": "string" },
+          "controls": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "attestation_sha256": { "type": "string" },
+          "attestation_expiry": { "type": "string", "format": "date-time" },
+          "is_active": { "type": "boolean" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "falsifiability": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["control_id", "witness_file", "witness_sha256", "verified"],
+        "properties": {
+          "control_id": { "type": "string" },
+          "witness_file": { "type": "string" },
+          "witness_sha256": { "type": "string" },
+          "verified": { "type": "boolean" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "ast_agnosticism_pairs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "pair_id",
+          "ast_a_file",
+          "ast_a_hash",
+          "ast_b_file",
+          "ast_b_hash",
+          "shared_evidence_hash",
+          "verified"
+        ],
+        "properties": {
+          "pair_id": { "type": "string" },
+          "ast_a_file": { "type": "string" },
+          "ast_a_hash": { "type": "string" },
+          "ast_b_file": { "type": "string" },
+          "ast_b_hash": { "type": "string" },
+          "shared_evidence_hash": { "type": "string" },
+          "verified": { "type": "boolean" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "coverage": {
+      "type": "object",
+      "required": ["basis", "numerator", "denominator", "percentage", "min_required", "passed"],
+      "properties": {
+        "basis": { "type": "string", "enum": ["declared_controls", "unique_controls", "baseline_catalog"] },
+        "numerator": { "type": "integer", "minimum": 0 },
+        "denominator": { "type": "integer", "minimum": 0 },
+        "percentage": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+        "min_required": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+        "passed": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "summary": {
+      "type": "object",
+      "required": [
+        "total_declarations",
+        "unique_controls",
+        "tier_satisfied",
+        "risk_accepted",
+        "unsatisfied",
+        "coverage",
+        "passed"
+      ],
+      "properties": {
+        "total_declarations": { "type": "integer", "minimum": 0 },
+        "unique_controls": { "type": "integer", "minimum": 0 },
+        "tier_satisfied": { "type": "integer", "minimum": 0 },
+        "risk_accepted": { "type": "integer", "minimum": 0 },
+        "unsatisfied": { "type": "integer", "minimum": 0 },
+        "coverage": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+        "passed": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

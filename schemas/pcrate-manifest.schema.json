@@ -1,0 +1,124 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://prime.defense.gov/schemas/pcrate-manifest.schema.json",
+  "title": "PRIME PCrate Manifest Schema",
+  "description": "Structural manifest for portable, offline-verifiable .pcrate packages (ADR-0017 Option 1)",
+  "type": "object",
+  "required": [
+    "pcrate",
+    "provenance",
+    "artifacts",
+    "verification"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "pcrate": {
+      "type": "object",
+      "required": [
+        "manifest_version",
+        "crate_name",
+        "crate_version",
+        "created_at",
+        "producer"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "manifest_version": {
+          "type": "string",
+          "enum": [
+            "1.0.0"
+          ]
+        },
+        "crate_name": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_-]+$"
+        },
+        "crate_version": {
+          "type": "string"
+        },
+        "created_at": {
+          "type": "string"
+        },
+        "producer": {
+          "type": "object",
+          "required": [
+            "system",
+            "version",
+            "gate_policy_sha256"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "system": {
+              "type": "string"
+            },
+            "version": {
+              "type": "string"
+            },
+            "gate_policy_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            }
+          }
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "required": [
+        "toolchain_matrix",
+        "policy",
+        "registry",
+        "trestle_attestation"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "toolchain_matrix": {
+          "type": "string"
+        },
+        "policy": {
+          "type": "string"
+        },
+        "registry": {
+          "type": "string"
+        },
+        "trestle_attestation": {
+          "type": "string"
+        }
+      }
+    },
+    "verification": {
+      "type": "object",
+      "required": [
+        "inspect_ok",
+        "offline_verify_ok",
+        "replay_supported",
+        "reproducible_builds"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "inspect_ok": {
+          "type": "boolean"
+        },
+        "offline_verify_ok": {
+          "type": "boolean"
+        },
+        "replay_supported": {
+          "type": "boolean"
+        },
+        "reproducible_builds": {
+          "type": "boolean"
+        }
+      }
+    },
+    "artifacts": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^[a-f0-9]{64}$"
+      }
+    },
+    "signature": {
+      "type": "object"
+    }
+  }
+}

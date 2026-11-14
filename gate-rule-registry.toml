@@ -1,0 +1,109 @@
+# ==============================================================================
+# LEXLEAN / PIRTM GATE RULE & WITNESS BIJECTION REGISTRY
+# ==============================================================================
+
+[registry_meta]
+schema_version = "2.0.0"
+registry_version = "1.2.0"
+discipline_mode = "manual_witness_with_ast_hash"
+min_rejected_witnesses_per_control = 1
+
+# ------------------------------------------------------------------------------
+# Toolchain & Compiler Gate Fixtures (FX-01 .. FX-08)
+# ------------------------------------------------------------------------------
+
+[fixtures.FX-01]
+control_id = "SI-7"
+description = "Unparsed syntax & invalid manifest structure"
+fixture_path = "tests/fixtures/fx01_invalid_syntax.rs"
+target_tool = "prismpm"
+trigger_rule_id = "E-OSCAL-001"
+fixture_diagnostic_kind = "parse_error"
+policy_engine_fired = true
+
+[fixtures.FX-02]
+control_id = "SI-7(1)"
+description = "Unbound/sorryAx in formal proof payload"
+fixture_path = "tests/fixtures/fx02_sorry_axiom.lean"
+target_tool = "lean4"
+trigger_rule_id = "E-OSCAL-002"
+fixture_diagnostic_kind = "kernel_rejected"
+policy_engine_fired = true
+
+[fixtures.FX-03]
+control_id = "SA-11"
+description = "Kani bounded execution unwind depth overflow"
+fixture_path = "tests/fixtures/fx03_unwind_overflow.rs"
+target_tool = "kani"
+trigger_rule_id = "E-OSCAL-003"
+fixture_diagnostic_kind = "kani_unwind_overflow"
+policy_engine_fired = true
+
+[fixtures.FX-08]
+control_id = "CA-7"
+description = "Tautological statement with trivial True proof lacking valid rejection witness"
+fixture_path = "tests/fixtures/fx08_tautology_trivial.lean"
+target_tool = "lean4"
+trigger_rule_id = "E-OSCAL-010"
+fixture_diagnostic_kind = "no_tool_diagnostic"
+policy_engine_fired = true
+
+# ------------------------------------------------------------------------------
+# Formal Domain Controls & Falsifiability Witnesses (L0 -> L1 Seam)
+# MUST yield 'rejected' under a valid structural mutation recipe.
+# ------------------------------------------------------------------------------
+
+[formal_kernel_witnesses.W-SI71-01]
+control_id = "SI-7(1)"
+target_theorem = "hybrid_third_deriv_in_bounds"
+target_tool = "lean4"
+source_path = "source/lean/PRIME/HybridThirdDeriv.lean"
+witness_path = "evidence/attestations/witnesses/W_SI71_01_false.lean"
+theorem_ast_sha256 = "c3ab8ff13720e8ad9047dd39466b3c8974e592c2fa383d4a3960714caef0c4f2"
+witness_module_sha256 = "8f9b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b"
+witness_expected_outcome = "rejected"
+witness_required_rejection_kind = "type_mismatch"
+
+[formal_kernel_witnesses.W-SI71-01.mutation_recipe]
+strategy = "mutate_constant"
+target_symbol = "abs_bound"
+target_position = "postcondition"
+params = { original = "0.4", mutated = "0.001" }
+
+[formal_kernel_witnesses.W-SI71-02]
+control_id = "SI-7(1)"
+target_theorem = "patch_memory_reads_bounded"
+target_tool = "lean4"
+source_path = "source/lean/PRIME/PatchMemory.lean"
+witness_path = "evidence/attestations/witnesses/W_SI71_02_false.lean"
+theorem_ast_sha256 = "f4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5"
+witness_module_sha256 = "1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c"
+witness_expected_outcome = "rejected"
+witness_required_rejection_kind = "type_mismatch"
+
+[formal_kernel_witnesses.W-SI71-02.mutation_recipe]
+strategy = "mutate_constant"
+target_symbol = "patch_window_size"
+target_position = "postcondition"
+params = { original = "81", mutated = "82" }
+
+# ------------------------------------------------------------------------------
+# Kernel Sensitivity Witnesses (Diagnostic Only)
+# Tracks monotonic acceptance; DOES NOT count toward falsifiability evidence.
+# ------------------------------------------------------------------------------
+
+[kernel_sensitivity_witnesses.S-SI71-01]
+control_id = "SI-7(1)"
+target_theorem = "hybrid_third_deriv_in_bounds"
+target_tool = "lean4"
+source_path = "source/lean/PRIME/HybridThirdDeriv.lean"
+witness_path = "evidence/attestations/sensitivity/S_SI71_01_strengthened.lean"
+theorem_ast_sha256 = "c3ab8ff13720e8ad9047dd39466b3c8974e592c2fa383d4a3960714caef0c4f2"
+witness_module_sha256 = "7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b"
+witness_expected_outcome = "proved"
+
+[kernel_sensitivity_witnesses.S-SI71-01.mutation_recipe]
+strategy = "strengthen_precondition"
+target_symbol = "dyadic_epsilon"
+target_position = "precondition"
+params = { original = "0.125", mutated = "0.0625" }

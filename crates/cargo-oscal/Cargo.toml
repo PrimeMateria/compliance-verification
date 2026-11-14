@@ -1,0 +1,39 @@
+[package]
+name = "cargo-oscal"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "cargo-oscal"
+path = "src/main.rs"
+
+[dependencies]
+oscal-types = { path = "../oscal-types" }
+oscal-engine = { path = "../oscal-engine" }
+oscal-diagnostics = { path = "../oscal-diagnostics" }
+clap.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+toml.workspace = true
+uuid.workspace = true
+chrono.workspace = true
+sha2 = "0.10"
+
+[package.metadata.oscal]
+component_title = "PRIME Compiler Orchestrator CLI"
+
+[[package.metadata.oscal.controls]]
+id = "SI-7"
+kind = "requires"
+
+[[package.metadata.oscal.controls]]
+id = "CM-7"
+required_tier = "test"
+evidence = ["cargo_test"]
+
+[[package.metadata.oscal.controls]]
+id = "CA-2"
+required_tier = "test"
+evidence = ["cargo_test"]

@@ -1,0 +1,64 @@
+[provenance]
+version = "1.0.0"
+updated = "2026-11-09T22:45:00Z"
+
+[toolchain]
+rustc_version = "1.99.1"
+rustc_commit = "58cf8f9c35b355199727627d07ae34a4e2846d67"
+rustc_channel = "stable"
+kani_version = "0.68.0"
+kani_bundled_rustc = "1.100.0-nightly (8925ea358 2026-08-20)"
+cbmc_version = "6.11.0"
+charon_version = "nightly-2026.10.31"
+charon_pinned_toolchain = "nightly-2026-09-17"
+aeneas_version = "build-2b9e3ea"
+lean_version = "4.35.0"
+lake_version = "5.0.0-src+eb6cafb"
+latexmk_version = "4.88"
+lualatex_version = "1.24.0"
+
+[tools.trestle]
+version = "3.4.0"
+runner = "container"
+image = "docker.io/compliance-trestle/trestle:3.4.0"
+image_sha256 = "c0897f25b2a3a5b67e7c8e5472855146c0b90499b706c6bbd85ec5c91ec0fef0"
+
+
+[schemas]
+oscal_assessment_results_1_1_0_sha256 = "fdee9614db5a21ad0c1747945def60810278fc5bf7287d2bf93ce2f53ed46977"
+oscal_poam_1_1_0_sha256 = "7e06835a32ab03561e96cfc9c623dd7b1ffd3924958a0e6a333008cb711b0f5f"
+oscal_catalog_1_1_0_sha256 = "936c53978eb47880dfa8b471640ae09b111b38d837686022ef7db07e26fa629d"
+oscal_ssp_1_1_0_sha256 = "c361dd9aadb7e0cf9b195194f2e1e88829d2b2b183d0e3ac32d4590d1acb72dd"
+oscal_assessment_plan_1_1_0_sha256 = "add46ade21dc1659f7bac0e83637a9270ba1468ebf6bbd26ac0c6085d2eb0e67"
+oscal_profile_1_1_0_sha256 = "e40698f88744d07ff4d06512d7359b18c10bf15ca97de6ce0b61d53bd82d19af"
+lean_rust_gate_policy_sha256 = "18698eb2dcd6b518d4393692cc377748663c28a8a95ce8241201d96395aade56"
+suppressed_findings_sha256 = "50f1501455c24b24b140c84ef9f8f633628bfe6fe75847c1a2fbb65c9aeaf559"
+control_id_map_sha256 = "1450c8a3adda5455f012c1baf98d30b7902d6c18f7da493a1a4092be62bf3fd7"
+evidence_schema_sha256 = "cf8597f05da3125527d09b96da473c3d662c3df61bcefb245c712985c247a3cc"
+trestle_attestation_schema_sha256 = "5e1dcf72f79c9cffc73181b43b2b4c7cb05a812b77c1668cac4d79fef9d5c3dd"
+gate_rule_registry_schema_sha256 = "59606384efce7c5a1634aa7eb115645ce1db2d2e2bd80b5488ae301953ff3bd5"
+pcrate_manifest_schema_sha256 = "89e7452d596ba7a17d9acd189ded3595ec9a8c68c22b0b441be4193b9e1583b1"
+
+[registries]
+gate_rule_registry_sha256 = "ed13f952b0951b8a92e977a27357dfcde50cd3dff3ba29617c1231f6fbd2d62a"
+
+[catalogs]
+nist_sp_800_53_rev5_catalog_sha256 = "6c39acc31c7d492a80acd6dd2af0ebc19bf8084974fd38ac9ed684a56beef3ac"
+nist_sp_800_53_rev5_catalog_source = "NIST SP 800-53 Rev. 5 OSCAL 1.1.0 JSON Catalog"
+nist_sp_800_53_rev5_catalog_url = "https://github.com/usnistgov/oscal-content/blob/master/nist.gov/SP800-53/rev5/json/NIST_SP-800-53_rev5_catalog.json"
+[corpora]
+pirtm_latex_corpus_sha256 = "62a9e4ce7c392b13d552108e2a0eb6d808f84cdca41bfb2b3501e310fd9b5b91"
+
+[normalization]
+canonicalize_control_id_precedence = "parenthesis_enhancement_first"
+canonicalize_control_id_justification = "NIST SP 800-53 OSCAL catalog encodes enhancements as si-7.1 with alt-identifier SI-7(1). Parentheses canonicalize to dot-separated NCName tokens matching ^(\\p{L}|_)(\\p{L}|\\p{N}|[.\\-_])*$ while preserving raw labels in observation/finding properties for lossless round-trip."
+
+[golden]
+cli_help_sha256 = "0c110deebfb58cba839559761e3dc1eab4ca4d9248d6dbe2f9e0f5f46a8a702c"
+macro_expansion_sha256 = "220b8985d3157d577cd6dc4d08c0accfd4d79aa15e297bffaee6f5d579c24e38"
+[envelopes]
+reject_identity_sha256 = "701e5ded425134a27a56ea01fcaeacc5fe9935e5fd910f283c03ceb5854d1e70"
+
+[constants]
+uuidv5_dns_namespace = "nist.gov:oscal:prime-verification"
+uuidv5_namespace_bytes = "6ba7b810-9dad-11d1-80b4-00c04fd430c8"

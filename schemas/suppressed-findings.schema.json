@@ -1,0 +1,104 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SuppressedFindingsDocument",
+  "description": "Cryptographically auditable registry of suppressed security findings per ADR-0015 and INV-PRIME-007",
+  "type": "object",
+  "required": [
+    "uuid",
+    "metadata",
+    "suppressed-findings"
+  ],
+  "properties": {
+    "uuid": {
+      "type": "string",
+      "pattern": "^[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[45][0-9A-Fa-f]{3}-[89ABab][0-9A-Fa-f]{3}-[0-9A-Fa-f]{12}$"
+    },
+    "metadata": {
+      "type": "object",
+      "required": [
+        "title",
+        "published",
+        "version",
+        "oscal-version",
+        "policy-waiver-mode",
+        "total-suppressed"
+      ],
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "published": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "oscal-version": {
+          "type": "string"
+        },
+        "policy-waiver-mode": {
+          "type": "string",
+          "enum": [
+            "suppress"
+          ]
+        },
+        "total-suppressed": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false
+    },
+    "suppressed-findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "control-id",
+          "component",
+          "target-symbol",
+          "required-tier",
+          "achieved-tier",
+          "suppression-reason"
+        ],
+        "properties": {
+          "control-id": {
+            "type": "string"
+          },
+          "component": {
+            "type": "string"
+          },
+          "target-symbol": {
+            "type": "string"
+          },
+          "required-tier": {
+            "type": "string",
+            "enum": [
+              "static_check",
+              "test",
+              "symbolic",
+              "formal_kernel"
+            ]
+          },
+          "achieved-tier": {
+            "type": "string",
+            "enum": [
+              "static_check",
+              "test",
+              "symbolic",
+              "formal_kernel"
+            ]
+          },
+          "suppression-reason": {
+            "type": "string"
+          },
+          "raw-telemetry": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

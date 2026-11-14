@@ -1,0 +1,174 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "GateRuleRegistry",
+  "description": "LEXLEAN / PIRTM Gate Rule & Witness Bijection Registry Schema v2.0.0",
+  "type": "object",
+  "required": ["registry_meta", "fixtures", "formal_kernel_witnesses"],
+  "properties": {
+    "registry_meta": {
+      "type": "object",
+      "required": ["schema_version", "registry_version", "discipline_mode", "min_rejected_witnesses_per_control"],
+      "properties": {
+        "schema_version": {
+          "type": "string",
+          "const": "2.0.0"
+        },
+        "registry_version": {
+          "type": "string"
+        },
+        "discipline_mode": {
+          "type": "string"
+        },
+        "min_rejected_witnesses_per_control": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "fixtures": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "control_id",
+          "description",
+          "fixture_path",
+          "target_tool",
+          "trigger_rule_id",
+          "fixture_diagnostic_kind",
+          "policy_engine_fired"
+        ],
+        "properties": {
+          "control_id": { "type": "string" },
+          "description": { "type": "string" },
+          "fixture_path": { "type": "string" },
+          "target_tool": { "type": "string", "enum": ["prismpm", "lean4", "kani"] },
+          "trigger_rule_id": { "type": "string" },
+          "fixture_diagnostic_kind": { "type": "string" },
+          "policy_engine_fired": { "type": "boolean" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "formal_kernel_witnesses": {
+      "type": "object",
+      "patternProperties": {
+        "^W-[A-Z0-9]+-[0-9]+$": {
+          "type": "object",
+          "required": [
+            "control_id",
+            "target_theorem",
+            "target_tool",
+            "source_path",
+            "witness_path",
+            "theorem_ast_sha256",
+            "witness_module_sha256",
+            "witness_expected_outcome",
+            "witness_required_rejection_kind",
+            "mutation_recipe"
+          ],
+          "properties": {
+            "control_id": { "type": "string" },
+            "target_theorem": { "type": "string" },
+            "target_tool": { "type": "string", "enum": ["lean4", "kani"] },
+            "source_path": { "type": "string" },
+            "witness_path": { "type": "string" },
+            "theorem_ast_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "witness_module_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "witness_expected_outcome": {
+              "type": "string",
+              "const": "rejected"
+            },
+            "witness_required_rejection_kind": { "type": "string" },
+            "mutation_recipe": {
+              "type": "object",
+              "required": ["strategy", "target_symbol", "target_position", "params"],
+              "properties": {
+                "strategy": {
+                  "type": "string",
+                  "enum": [
+                    "mutate_constant",
+                    "weaken_precondition",
+                    "strengthen_postcondition",
+                    "swap_equality_direction"
+                  ]
+                },
+                "target_symbol": { "type": "string" },
+                "target_position": {
+                  "type": "string",
+                  "enum": ["precondition", "postcondition"]
+                },
+                "params": { "type": "object" }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "kernel_sensitivity_witnesses": {
+      "type": "object",
+      "patternProperties": {
+        "^S-[A-Z0-9]+-[0-9]+$": {
+          "type": "object",
+          "required": [
+            "control_id",
+            "target_theorem",
+            "target_tool",
+            "source_path",
+            "witness_path",
+            "theorem_ast_sha256",
+            "witness_module_sha256",
+            "witness_expected_outcome",
+            "mutation_recipe"
+          ],
+          "properties": {
+            "control_id": { "type": "string" },
+            "target_theorem": { "type": "string" },
+            "target_tool": { "type": "string", "enum": ["lean4", "kani"] },
+            "source_path": { "type": "string" },
+            "witness_path": { "type": "string" },
+            "theorem_ast_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "witness_module_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "witness_expected_outcome": {
+              "type": "string",
+              "enum": ["proved", "rejected"]
+            },
+            "mutation_recipe": {
+              "type": "object",
+              "required": ["strategy", "target_symbol", "target_position", "params"],
+              "properties": {
+                "strategy": { "type": "string" },
+                "target_symbol": { "type": "string" },
+                "target_position": {
+                  "type": "string",
+                  "enum": ["precondition", "postcondition"]
+                },
+                "params": { "type": "object" }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

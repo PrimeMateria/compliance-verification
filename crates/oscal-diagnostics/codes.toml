@@ -1,0 +1,129 @@
+# Diagnostic Error Codes for the OSCAL Compiler Engine
+# Pinned and compiled via build.rs into src/codes.rs
+
+[E-OSCAL-001]
+name = "MissingControlAnnotation"
+title = "Function requires mapped NIST security control annotation"
+description = "Every high-assurance security function must be bound to a NIST SP 800-53 control via #[oscal_control]."
+
+[E-OSCAL-002]
+name = "KaniAssertionFailure"
+title = "Kani symbolic model check assertion failed"
+description = "Bounded symbolic execution detected a counterexample or violated assertion."
+
+[E-OSCAL-003]
+name = "KaniTimeoutOrUnwindExceeded"
+title = "Kani symbolic check exceeded solver timeout or unwind depth"
+description = "Verification loop unrolling reached bound limit before all paths converged."
+
+[E-OSCAL-004]
+name = "LeanSorryAxiomPresent"
+title = "Lean 4 proof obligation contains unproven 'sorry' axiom"
+description = "Lean 4 theorem environment contains sorryAx axioms violating INV-PRIME-005."
+
+[E-OSCAL-005]
+name = "CharonTranslationBoundary"
+title = "Charon compiler extraction boundary encountered"
+description = "Unsupported Rust construct or raw pointer manipulation blocked LLBC translation."
+
+[E-OSCAL-006]
+name = "GatePolicyViolation"
+title = "Continuous Authorization Gate evaluation failed"
+description = "Pipeline metadata violated gate rules specified in lean-rust.toml."
+
+[E-OSCAL-007]
+name = "BaselineCatalogTailoringRequired"
+title = "coverage_basis 'baseline_catalog' requires tailoring overlay"
+description = "Evaluating continuous authorization against a baseline catalog requires a valid tailoring overlay; see ADR-0005 §5.6."
+
+[E-OSCAL-008]
+name = "ManifestValidationFailed"
+title = "Package OSCAL metadata manifest validation failed"
+description = "Declared package OSCAL metadata contains invalid control mappings, tier downgrades, or invalid evidence sources."
+
+[E-OSCAL-009]
+name = "ConflictingAdjudicatedStates"
+title = "Conflicting adjudicated states declared for the same control finding"
+description = "A control finding cannot declare mutually exclusive adjudicated states (e.g., both risk-accepted and suppressed)."
+
+[E-OSCAL-010]
+name = "UnresolvedRequires"
+title = "Control dependency requirement not satisfied by any workspace component or inheritance source"
+description = "A control declared as 'requires' is not satisfied by any workspace 'implements' component or active CSP inheritance source."
+
+[E-OSCAL-011]
+name = "ConsumerTierMismatch"
+title = "Consumer required assurance tier exceeds implementing component's declared tier"
+description = "A consumer crate requires a higher assurance tier for a control than any implementing component provides."
+
+[E-OSCAL-012]
+name = "ExpiredInheritanceAttestation"
+title = "CSP external authorization attestation package has expired"
+description = "An inherited control's external CSP authorization package has expired, requiring POA&M tracking."
+
+[E-OSCAL-013]
+name = "UnsatisfiedBaselineControlSspAbort"
+title = "System Security Plan synthesis aborted due to unsatisfied baseline controls"
+description = "Cannot synthesize an OSCAL System Security Plan while in-scope controls in the tailored baseline remain unsatisfied."
+
+[E-OSCAL-014]
+name = "CatalogHashMismatch"
+title = "Catalog cryptographic hash mismatch detected during continuous monitoring"
+description = "Catalog content or version has drifted from the cryptographically pinned baseline in PROVENANCE.toml during operational monitoring."
+
+[E-OSCAL-015]
+name = "EvidenceStalenessTTL"
+title = "Security evidence age exceeds continuous monitoring staleness TTL threshold"
+description = "Evidence timestamp exceeds the maximum allowable audit-ttl or monitoring retention period, requiring evidence refresh."
+
+[E-OSCAL-016]
+name = "MissingSspForSap"
+title = "Security Assessment Plan synthesis failed: missing or unresolvable System Security Plan"
+description = "Cannot synthesize an OSCAL Security Assessment Plan without an authoritative System Security Plan (SSP) to import."
+
+[E-OSCAL-017]
+name = "OrphanedAssessmentObservation"
+title = "Assessment Results contains orphaned observation or finding without valid SAP/SSP reference"
+description = "An assessment observation or finding failed to resolve to a valid SAP activity UUID, SAP objective ID, or SSP implemented-requirement UUID."
+
+[E-OSCAL-018]
+name = "POAMStateTransitionInvalid"
+title = "Plan of Action and Milestones item state transition or evidence reference is invalid"
+description = "A POA&M item transition violated the lifecycle state machine, attempted an illegal state change, or lacked required evidence/rationale citations."
+
+[E-OSCAL-019]
+name = "ReplayMismatch"
+title = "Audit replay synthesized artifacts do not match historical baseline byte-for-byte"
+description = "Executing audit replay against a historical record produced compliance artifacts that differ from the recorded artifacts."
+
+[E-OSCAL-020]
+name = "ReplayToolchainMismatch"
+title = "Audit replay host toolchain version differs from historical record execution environment"
+description = "Executing audit replay requires host compiler toolchains matching the pinned toolchains recorded in the historical audit index."
+
+[E-OSCAL-021]
+name = "ProfileCycleDetected"
+title = "Circular dependency detected during OSCAL profile import graph traversal"
+description = "An OSCAL profile imports itself or participates in a cyclic import chain, violating DAG resolution constraints."
+
+[E-OSCAL-022]
+name = "ProfileImportUnresolved"
+title = "OSCAL profile import href cannot be resolved to a local catalog or profile artifact"
+description = "An OSCAL profile specifies an import href that does not exist or cannot be resolved within the workspace."
+
+[E-OSCAL-023]
+name = "ProfileControlSelectorUnresolved"
+title = "Control selector in with-ids does not match any control in the imported baseline"
+description = "An OSCAL profile control selection filter references control identifiers that do not exist in the imported catalog or profile."
+
+[E-OSCAL-024]
+name = "ProfileParameterUnresolved"
+title = "Profile set-parameters references a parameter identifier that does not exist in the resolved catalog"
+description = "An OSCAL profile set-parameters override specifies a param-id that does not exist in any control or parameter declaration within the resolved catalog baseline."
+
+[E-OSCAL-025]
+name = "EvidenceAttestationDrift"
+title = "Evidence attestation hash mismatch or drift detected"
+description = "Raw verification evidence output or attestation report has drifted from the cryptographic hash recorded in evidence.json."
+
+

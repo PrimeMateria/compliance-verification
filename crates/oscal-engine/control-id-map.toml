@@ -1,0 +1,33 @@
+# Declarative NIST OSCAL Control Identifier Canonicalization Specification
+# Per ADR-0013 and INV-PRIME-007
+
+[rules]
+precedence = "parenthesis_enhancement_precedence"
+schema_token_pattern = "^(\\p{L}|_)(\\p{L}|\\p{N}|[.\\-_])*$"
+fallback_prefix = "ctrl_"
+
+[[mappings]]
+name = "enhancement_parentheses"
+pattern = "^([A-Za-z0-9_-]+)\\(([0-9]+)\\)$"
+canonical_format = "$1.$2"
+description = "Canonicalize parenthesized enhancement (e.g. SI-7(1) -> si-7.1)"
+
+[[mappings]]
+name = "canonical_dotted"
+pattern = "^([A-Za-z0-9_-]+)\\.([0-9]+)$"
+canonical_format = "$1.$2"
+description = "Already dotted enhancement pass-through (e.g. SI-7.1 -> si-7.1)"
+
+[[mappings]]
+name = "bare_control"
+pattern = "^([A-Za-z0-9_-]+)$"
+canonical_format = "$1"
+description = "Base control pass-through (e.g. AC-2 -> ac-2)"
+
+[default_tiers]
+"si-7.1" = "formal_kernel"
+"si-7" = "test"
+"au-3" = "test"
+"cm-8" = "test"
+"cm-7" = "test"
+"ca-2" = "test"

@@ -1,0 +1,38 @@
+[package]
+name = "oscal-engine"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(kani)'] }
+
+[dependencies]
+oscal-types = { path = "../oscal-types" }
+oscal-diagnostics = { path = "../oscal-diagnostics" }
+serde.workspace = true
+serde_json.workspace = true
+toml.workspace = true
+uuid.workspace = true
+chrono.workspace = true
+jsonschema.workspace = true
+sha2 = "0.10"
+
+[package.metadata.oscal]
+component_title = "PRIME OSCAL Compliance Engine"
+
+[[package.metadata.oscal.controls]]
+id = "SI-7"
+required_tier = "symbolic"
+evidence = ["cargo_test", "kani"]
+
+[[package.metadata.oscal.controls]]
+id = "AU-3"
+required_tier = "test"
+evidence = ["cargo_test"]
+
+[[package.metadata.oscal.controls]]
+id = "CM-8"
+required_tier = "test"
+evidence = ["cargo_test"]

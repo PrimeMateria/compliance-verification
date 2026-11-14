@@ -1,0 +1,38 @@
+# PRIME Declarative CI/CD Continuous Authorization Gate Policy
+# Validated against schemas/lean-rust.schema.json per ADR-0015 and INV-PRIME-007
+
+[policy]
+require_kani_pass = true
+forbid_lean_sorry = true
+min_control_coverage = 1.0
+min_default_tier = "test"
+coverage_basis = "declared_controls"
+waiver_mode = "downgrade"
+waived_controls = []
+
+[policy.risk_accepted]
+max_count = 1
+max_fraction = 0.20
+requires_poam_milestone = true
+
+[promotion]
+mode = "auto"
+staging_dir = "artifacts/oscal/staging"
+release_dir = "artifacts/oscal"
+
+[catalog]
+baseline = "NIST_SP_800_53_Rev5"
+
+[monitoring]
+audit_ttl = "7d"
+fail_on_stale = false
+fail_on_drift = true
+fail_on_expired_attestation = true
+fail_on_overdue = false
+require_poam = false
+
+[categories]
+cat1 = ["critical"]
+cat2 = ["high"]
+cat3 = ["moderate", "low"]
+

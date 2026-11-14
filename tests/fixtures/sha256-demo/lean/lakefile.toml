@@ -1,0 +1,7 @@
+name = "sha256_demo"
+version = "0.1.0"
+defaultTargets = ["Funs"]
+
+[[lean_lib]]
+name = "Funs"
+srcDir = "."
