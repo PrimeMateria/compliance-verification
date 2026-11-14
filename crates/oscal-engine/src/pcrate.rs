@@ -1277,6 +1277,20 @@ baseline = "NIST_SP_800_53_Rev5"
         let err = verify_pcrate_dir(temp.path(), None).unwrap_err();
         assert!(err.to_string().contains("Invariant 5 violation") || err.to_string().contains("violation"), "Expected consumption or Invariant violation, got: {}", err);
     }
+    #[test]
+    fn test_pp_01() {
+        test_unit_invariant_1_hash_mismatch_fails_closed();
+    }
+
+    #[test]
+    fn test_pp_02() {
+        test_unit_invariant_2_schema_invalid_fails_closed();
+    }
+
+    #[test]
+    fn test_pp_03() {
+        test_unit_invariant_3_policy_divergence_fails_closed();
+    }
 }
 
 #[cfg(kani)]

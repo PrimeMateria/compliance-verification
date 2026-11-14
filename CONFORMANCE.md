@@ -23,6 +23,9 @@ model does not sanction.
 | ID | Level | Statement |
 | --- | --- | --- |
 | `TC-01` | `build` | The checker answers conformant exactly when every universal policy file's observed digest equals its locked digest |
+| `PP-01` | `build` | The .pcrate hermetic verifier enforces file hash integrity and MANIFEST.SHA256 matching across all release artifacts |
+| `PP-02` | `build` | The .pcrate verifier validates evidence and manifest structures against pinned NIST OSCAL 1.1.0 JSON schemas |
+| `PP-03` | `build` | The .pcrate verifier deterministically re-derives gate decisions and policy compliance from bundled provenance |
 
 ## frame
 

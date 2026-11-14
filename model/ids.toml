@@ -44,3 +44,20 @@ id = "FR-03"
 level = "build"
 suite = "frame"
 statement = "A first visit's bytes are counted once the page has started, the frame's and the app's each within its own budget"
+[[id]]
+id = "PP-01"
+level = "build"
+suite = "contract"
+statement = "The .pcrate hermetic verifier enforces file hash integrity and MANIFEST.SHA256 matching across all release artifacts"
+
+[[id]]
+id = "PP-02"
+level = "build"
+suite = "contract"
+statement = "The .pcrate verifier validates evidence and manifest structures against pinned NIST OSCAL 1.1.0 JSON schemas"
+
+[[id]]
+id = "PP-03"
+level = "build"
+suite = "contract"
+statement = "The .pcrate verifier deterministically re-derives gate decisions and policy compliance from bundled provenance"
