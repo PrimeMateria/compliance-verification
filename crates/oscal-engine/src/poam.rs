@@ -119,7 +119,9 @@ pub fn validate_poam_transition(
     }
 
     if to == PoamState::RiskAccepted {
-        let citation_valid = evidence_citation.map(|c| !c.trim().is_empty()).unwrap_or(false);
+        let citation_valid = evidence_citation
+            .map(|c| !c.trim().is_empty())
+            .unwrap_or(false);
         if !citation_valid {
             return Err(format!(
                 "POA&M state transition to 'risk_accepted' requires a non-empty evidence citation or waiver rationale [{}]",
@@ -129,7 +131,9 @@ pub fn validate_poam_transition(
     }
 
     if to == PoamState::FalsePositive {
-        let citation_valid = evidence_citation.map(|c| !c.trim().is_empty()).unwrap_or(false);
+        let citation_valid = evidence_citation
+            .map(|c| !c.trim().is_empty())
+            .unwrap_or(false);
         if !citation_valid {
             return Err(format!(
                 "POA&M state transition to 'false_positive' requires a non-empty justification and evidence reference [{}]",
@@ -374,13 +378,27 @@ pub fn sync_poam_state(
 
             // Update evidence references
             if let Some(find_uuid) = defect.finding_uuid {
-                if !tracked.item.related_findings.iter().any(|rf| rf.finding_uuid == find_uuid) {
-                    tracked.item.related_findings.push(RelatedFinding { finding_uuid: find_uuid });
+                if !tracked
+                    .item
+                    .related_findings
+                    .iter()
+                    .any(|rf| rf.finding_uuid == find_uuid)
+                {
+                    tracked.item.related_findings.push(RelatedFinding {
+                        finding_uuid: find_uuid,
+                    });
                 }
             }
             if let Some(obs_uuid) = defect.observation_uuid {
-                if !tracked.item.related_observations.iter().any(|ro| ro.observation_uuid == obs_uuid) {
-                    tracked.item.related_observations.push(RelatedObservation { observation_uuid: obs_uuid });
+                if !tracked
+                    .item
+                    .related_observations
+                    .iter()
+                    .any(|ro| ro.observation_uuid == obs_uuid)
+                {
+                    tracked.item.related_observations.push(RelatedObservation {
+                        observation_uuid: obs_uuid,
+                    });
                 }
             }
             if let Some(dl) = defect.remediation_deadline {
@@ -399,11 +417,15 @@ pub fn sync_poam_state(
 
             let mut related_findings = Vec::new();
             if let Some(f_uuid) = defect.finding_uuid {
-                related_findings.push(RelatedFinding { finding_uuid: f_uuid });
+                related_findings.push(RelatedFinding {
+                    finding_uuid: f_uuid,
+                });
             }
             let mut related_observations = Vec::new();
             if let Some(o_uuid) = defect.observation_uuid {
-                related_observations.push(RelatedObservation { observation_uuid: o_uuid });
+                related_observations.push(RelatedObservation {
+                    observation_uuid: o_uuid,
+                });
             }
 
             let deadline = defect
@@ -597,11 +619,14 @@ mod tests {
         assert!(!can_transition(PoamState::Closed, PoamState::InProgress));
         assert!(!can_transition(PoamState::Closed, PoamState::RiskAccepted));
         assert!(!can_transition(PoamState::FalsePositive, PoamState::Closed));
-        assert!(!can_transition(PoamState::FalsePositive, PoamState::InProgress));
+        assert!(!can_transition(
+            PoamState::FalsePositive,
+            PoamState::InProgress
+        ));
 
         // Diagnostic validation
-        let err = validate_poam_transition(PoamState::Closed, PoamState::RiskAccepted, None)
-            .unwrap_err();
+        let err =
+            validate_poam_transition(PoamState::Closed, PoamState::RiskAccepted, None).unwrap_err();
         assert!(err.contains("E-OSCAL-018"));
     }
 
@@ -609,13 +634,16 @@ mod tests {
     fn test_poam_deterministic_uuid_stability() {
         let u1 = compute_poam_item_uuid("si-7(1)", "lean4", "test_si7", "sorry_axiom");
         let u2 = compute_poam_item_uuid("SI-7(1)", "LEAN4", "test_si7", "sorry_axiom");
-        assert_eq!(u1, u2, "UUIDv5 must be case-insensitive on canonical control and source kind");
+        assert_eq!(
+            u1, u2,
+            "UUIDv5 must be case-insensitive on canonical control and source kind"
+        );
     }
 
     #[test]
     fn test_poam_risk_accepted_requires_evidence_citation() {
-        let err = validate_poam_transition(PoamState::Open, PoamState::RiskAccepted, None)
-            .unwrap_err();
+        let err =
+            validate_poam_transition(PoamState::Open, PoamState::RiskAccepted, None).unwrap_err();
         assert!(err.contains("E-OSCAL-018"));
         assert!(err.contains("requires a non-empty evidence citation"));
 
@@ -650,7 +678,10 @@ mod tests {
         let (doc1, out1) = sync_poam_state(None, &[defect.clone()], now, None).unwrap();
         assert_eq!(out1.new_items.len(), 1);
         let defect_uuid = out1.new_items[0];
-        assert_eq!(doc1.plan_of_action_and_milestones.poam_items[0].uuid, defect_uuid);
+        assert_eq!(
+            doc1.plan_of_action_and_milestones.poam_items[0].uuid,
+            defect_uuid
+        );
 
         // 2. Defect resolved in next pass (zero defects)
         let later = now + chrono::Duration::days(1);
@@ -659,7 +690,12 @@ mod tests {
         assert_eq!(out2.resolved_items[0], defect_uuid);
         let resolved_item = &doc2.plan_of_action_and_milestones.poam_items[0];
         assert_eq!(
-            resolved_item.props.iter().find(|p| p.name == "status").unwrap().value,
+            resolved_item
+                .props
+                .iter()
+                .find(|p| p.name == "status")
+                .unwrap()
+                .value,
             "closed"
         );
 
@@ -669,9 +705,17 @@ mod tests {
         assert_eq!(out3.reopened_items.len(), 1);
         assert_eq!(out3.reopened_items[0], defect_uuid);
         let reopened_item = &doc3.plan_of_action_and_milestones.poam_items[0];
-        assert_eq!(reopened_item.uuid, defect_uuid, "Reopened item must keep exact same UUIDv5");
         assert_eq!(
-            reopened_item.props.iter().find(|p| p.name == "status").unwrap().value,
+            reopened_item.uuid, defect_uuid,
+            "Reopened item must keep exact same UUIDv5"
+        );
+        assert_eq!(
+            reopened_item
+                .props
+                .iter()
+                .find(|p| p.name == "status")
+                .unwrap()
+                .value,
             "open"
         );
 
@@ -713,7 +757,13 @@ mod tests {
         let (_doc, out) = sync_poam_state(None, &[defect], now, Some(&caps)).unwrap();
         assert_eq!(out.active_open_count, 1);
         assert_eq!(out.overdue_items.len(), 1);
-        assert!(out.violations.iter().any(|v| v.contains("exceeds policy cap")));
-        assert!(out.violations.iter().any(|v| v.contains("exceeded remediation deadline")));
+        assert!(out
+            .violations
+            .iter()
+            .any(|v| v.contains("exceeds policy cap")));
+        assert!(out
+            .violations
+            .iter()
+            .any(|v| v.contains("exceeded remediation deadline")));
     }
 }

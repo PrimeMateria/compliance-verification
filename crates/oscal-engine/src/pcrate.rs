@@ -127,7 +127,10 @@ pub fn compute_sha256_hex(path: &Path) -> Result<String, std::io::Error> {
 }
 
 /// Recursively collect all files under a directory with root-relative paths
-fn collect_relative_files(base_dir: &Path, current_dir: &Path) -> Result<Vec<PathBuf>, std::io::Error> {
+fn collect_relative_files(
+    base_dir: &Path,
+    current_dir: &Path,
+) -> Result<Vec<PathBuf>, std::io::Error> {
     let mut files = Vec::new();
     if !current_dir.exists() {
         return Ok(files);
@@ -139,7 +142,10 @@ fn collect_relative_files(base_dir: &Path, current_dir: &Path) -> Result<Vec<Pat
             files.extend(collect_relative_files(base_dir, &path)?);
         } else if path.is_file() {
             let rel = path.strip_prefix(base_dir).map_err(|e| {
-                std::io::Error::new(std::io::ErrorKind::Other, format!("Strip prefix failed: {}", e))
+                std::io::Error::new(
+                    std::io::ErrorKind::Other,
+                    format!("Strip prefix failed: {}", e),
+                )
             })?;
             files.push(rel.to_path_buf());
         }
@@ -286,7 +292,10 @@ pub fn assemble_pcrate(
     // Toolchain matrix
     let toolchain_matrix_src = workspace_root.join("provenance/toolchain-matrix.json");
     if toolchain_matrix_src.exists() {
-        fs::copy(&toolchain_matrix_src, prov_stage.join("toolchain-matrix.json"))?;
+        fs::copy(
+            &toolchain_matrix_src,
+            prov_stage.join("toolchain-matrix.json"),
+        )?;
     } else {
         let default_matrix = serde_json::json!({
             "rustc": "1.99.1",
@@ -366,7 +375,10 @@ pub fn assemble_pcrate(
         manifest_lines.push(format!("{}  {}", hash, rel_str));
     }
     manifest_lines.sort();
-    fs::write(stage.join("MANIFEST.SHA256"), manifest_lines.join("\n") + "\n")?;
+    fs::write(
+        stage.join("MANIFEST.SHA256"),
+        manifest_lines.join("\n") + "\n",
+    )?;
 
     // 11. Archive using tar -czf (clear environment to prevent host leaks)
     if let Some(parent) = out_pcrate_path.parent() {
@@ -387,14 +399,21 @@ pub fn assemble_pcrate(
         .status()?;
 
     if !status.success() {
-        return Err(format!("Failed to create .pcrate tarball at {}", out_pcrate_path.display()).into());
+        return Err(format!(
+            "Failed to create .pcrate tarball at {}",
+            out_pcrate_path.display()
+        )
+        .into());
     }
 
     Ok(out_pcrate_path.to_path_buf())
 }
 
 /// Unpack a .pcrate archive into target directory in an isolated environment
-pub fn unpack_pcrate(pcrate_path: &Path, target_dir: &Path) -> Result<(), Box<dyn std::error::Error>> {
+pub fn unpack_pcrate(
+    pcrate_path: &Path,
+    target_dir: &Path,
+) -> Result<(), Box<dyn std::error::Error>> {
     fs::create_dir_all(target_dir)?;
     let mut cmd = std::process::Command::new("tar");
     cmd.env_clear();
@@ -452,7 +471,6 @@ pub fn verify_pcrate_dir(
     root: &Path,
     injected_now: Option<chrono::DateTime<chrono::Utc>>,
 ) -> Result<PCrateVerificationReport, Box<dyn std::error::Error>> {
-
     // -------------------------------------------------------------------------
     // Invariant 1: File Hash Integrity & MANIFEST.SHA256
     // -------------------------------------------------------------------------
@@ -470,13 +488,21 @@ pub fn verify_pcrate_dir(
         }
         let parts: Vec<&str> = line.split_whitespace().collect();
         if parts.len() < 2 {
-            return Err(format!("Invariant 1 violation: Malformed line in MANIFEST.SHA256: '{}'", line).into());
+            return Err(format!(
+                "Invariant 1 violation: Malformed line in MANIFEST.SHA256: '{}'",
+                line
+            )
+            .into());
         }
         let expected_hash = parts[0];
         let rel_path_str = parts[1].trim_start_matches("./");
         let file_path = root.join(rel_path_str);
         if !file_path.exists() {
-            return Err(format!("Invariant 1 violation: Listed file does not exist: '{}'", rel_path_str).into());
+            return Err(format!(
+                "Invariant 1 violation: Listed file does not exist: '{}'",
+                rel_path_str
+            )
+            .into());
         }
         let actual_hash = compute_sha256_hex(&file_path)?;
         if actual_hash != expected_hash {
@@ -495,12 +521,15 @@ pub fn verify_pcrate_dir(
         return Err("Invariant 1 violation: PCrate.toml missing from bundle".into());
     }
     let pcrate_toml_str = fs::read_to_string(&pcrate_toml_path)?;
-    let manifest: PCrateManifest = toml::from_str(&pcrate_toml_str).map_err(|e| {
-        format!("Invariant 1 violation: Failed to parse PCrate.toml: {}", e)
-    })?;
+    let manifest: PCrateManifest = toml::from_str(&pcrate_toml_str)
+        .map_err(|e| format!("Invariant 1 violation: Failed to parse PCrate.toml: {}", e))?;
 
     // Invariant 1: PCrate.toml Hash Verification
-    let artifact_vec: Vec<(&str, String)> = manifest.artifacts.iter().map(|(k, v)| (k.as_str(), v.clone())).collect();
+    let artifact_vec: Vec<(&str, String)> = manifest
+        .artifacts
+        .iter()
+        .map(|(k, v)| (k.as_str(), v.clone()))
+        .collect();
     if let Err((rel, exp_hash, actual)) = verify_manifest_entries(&artifact_vec, |rel| {
         let fpath = root.join(rel);
         if !fpath.exists() {
@@ -510,7 +539,11 @@ pub fn verify_pcrate_dir(
     }) {
         let fpath = root.join(rel);
         if !fpath.exists() {
-            return Err(format!("Invariant 1 violation: Artifact in PCrate.toml missing: '{}'", rel).into());
+            return Err(format!(
+                "Invariant 1 violation: Artifact in PCrate.toml missing: '{}'",
+                rel
+            )
+            .into());
         }
         return Err(format!(
             "Invariant 1 violation: PCrate.toml artifact hash mismatch for '{}': expected {}, found {}",
@@ -523,7 +556,10 @@ pub fn verify_pcrate_dir(
     // -------------------------------------------------------------------------
     let manifest_val: serde_json::Value = serde_json::to_value(&manifest)?;
     validate_pcrate_manifest(&manifest_val).map_err(|errs| {
-        format!("Invariant 2 violation: PCrate.toml schema validation failed: {:?}", errs)
+        format!(
+            "Invariant 2 violation: PCrate.toml schema validation failed: {:?}",
+            errs
+        )
     })?;
 
     let ev_path = root.join("evidence/evidence.json");
@@ -533,7 +569,10 @@ pub fn verify_pcrate_dir(
     let ev_str = fs::read_to_string(&ev_path)?;
     let ev_val: serde_json::Value = serde_json::from_str(&ev_str)?;
     validate_evidence(&ev_val).map_err(|errs| {
-        format!("Invariant 2 violation: evidence.json schema validation failed: {:?}", errs)
+        format!(
+            "Invariant 2 violation: evidence.json schema validation failed: {:?}",
+            errs
+        )
     })?;
 
     let reg_path = root.join("provenance/gate-rule-registry.toml");
@@ -542,7 +581,10 @@ pub fn verify_pcrate_dir(
         let reg_val: toml::Value = toml::from_str(&reg_str)?;
         let reg_json: serde_json::Value = serde_json::to_value(reg_val)?;
         validate_gate_rule_registry(&reg_json).map_err(|errs| {
-            format!("Invariant 2 violation: gate-rule-registry schema validation failed: {:?}", errs)
+            format!(
+                "Invariant 2 violation: gate-rule-registry schema validation failed: {:?}",
+                errs
+            )
         })?;
     }
 
@@ -551,7 +593,10 @@ pub fn verify_pcrate_dir(
         let trestle_str = fs::read_to_string(&trestle_attest_path)?;
         let trestle_val: serde_json::Value = serde_json::from_str(&trestle_str)?;
         validate_trestle_attestation(&trestle_val).map_err(|errs| {
-            format!("Invariant 2 violation: trestle-attestation schema validation failed: {:?}", errs)
+            format!(
+                "Invariant 2 violation: trestle-attestation schema validation failed: {:?}",
+                errs
+            )
         })?;
     }
 
@@ -560,7 +605,9 @@ pub fn verify_pcrate_dir(
     // -------------------------------------------------------------------------
     let policy_path = root.join("provenance/lean-rust.toml");
     if !policy_path.exists() {
-        return Err("Invariant 3 violation: provenance/lean-rust.toml policy missing from bundle".into());
+        return Err(
+            "Invariant 3 violation: provenance/lean-rust.toml policy missing from bundle".into(),
+        );
     }
     let actual_policy_sha = compute_sha256_hex(&policy_path)?;
 
@@ -574,7 +621,10 @@ pub fn verify_pcrate_dir(
 
     let policy_str = fs::read_to_string(&policy_path)?;
     let policy_config: GatePolicyConfig = toml::from_str(&policy_str).map_err(|e| {
-        format!("Invariant 3 violation: Failed to parse bundled lean-rust.toml: {}", e)
+        format!(
+            "Invariant 3 violation: Failed to parse bundled lean-rust.toml: {}",
+            e
+        )
     })?;
 
     let evidence_doc: EvidenceDocument = serde_json::from_value(ev_val)?;
@@ -582,14 +632,18 @@ pub fn verify_pcrate_dir(
     // Load bundled gate-decision.json and release-status.json
     let gd_path = root.join("evidence/gate-decision.json");
     if !gd_path.exists() {
-        return Err("Invariant 3 violation: evidence/gate-decision.json missing from bundle".into());
+        return Err(
+            "Invariant 3 violation: evidence/gate-decision.json missing from bundle".into(),
+        );
     }
     let gd_str = fs::read_to_string(&gd_path)?;
     let gate_decision: GateDecision = serde_json::from_str(&gd_str)?;
 
     let rs_path = root.join("evidence/release-status.json");
     if !rs_path.exists() {
-        return Err("Invariant 3 violation: evidence/release-status.json missing from bundle".into());
+        return Err(
+            "Invariant 3 violation: evidence/release-status.json missing from bundle".into(),
+        );
     }
     let rs_str = fs::read_to_string(&rs_path)?;
     let release_status: ReleaseStatus = serde_json::from_str(&rs_str)?;
@@ -604,7 +658,12 @@ pub fn verify_pcrate_dir(
         .as_ref()
         .and_then(|r| r.max_count)
         .map(|c| c as usize)
-        .or_else(|| evidence_doc.policy.risk_accepted_max_count.map(|c| c as usize));
+        .or_else(|| {
+            evidence_doc
+                .policy
+                .risk_accepted_max_count
+                .map(|c| c as usize)
+        });
 
     let mut derived_violations = Vec::new();
     let mut satisfied_count = 0usize;
@@ -614,14 +673,18 @@ pub fn verify_pcrate_dir(
         if forbid_sorry {
             for src in &ctrl.evidence_sources {
                 if src.tool == "lean" && src.sorry_free == Some(false) {
-                    derived_violations.push(format!("Fatal: lean proof for '{}' contains sorry defect", ctrl.id));
+                    derived_violations.push(format!(
+                        "Fatal: lean proof for '{}' contains sorry defect",
+                        ctrl.id
+                    ));
                 }
             }
         }
         if require_kani && ctrl.required_tier == "symbolic" {
             for src in &ctrl.evidence_sources {
                 if src.tool == "kani" && !src.passed {
-                    derived_violations.push(format!("Fatal: kani verification failed for '{}'", ctrl.id));
+                    derived_violations
+                        .push(format!("Fatal: kani verification failed for '{}'", ctrl.id));
                 }
             }
         }
@@ -638,7 +701,10 @@ pub fn verify_pcrate_dir(
 
     if let Some(max_w) = max_waiver_count {
         if risk_accepted_count > max_w {
-            derived_violations.push(format!("Waiver count {} exceeds policy ceiling {}", risk_accepted_count, max_w));
+            derived_violations.push(format!(
+                "Waiver count {} exceeds policy ceiling {}",
+                risk_accepted_count, max_w
+            ));
         }
     }
 
@@ -654,7 +720,10 @@ pub fn verify_pcrate_dir(
     };
 
     if rederived_coverage < min_coverage {
-        derived_violations.push(format!("Coverage {:.2} below required {:.2}", rederived_coverage, min_coverage));
+        derived_violations.push(format!(
+            "Coverage {:.2} below required {:.2}",
+            rederived_coverage, min_coverage
+        ));
     }
 
     // Check inheritance active
@@ -664,7 +733,11 @@ pub fn verify_pcrate_dir(
         }
     }
 
-    let expected_comp_checks = if derived_violations.is_empty() { "pass" } else { "fail" };
+    let expected_comp_checks = if derived_violations.is_empty() {
+        "pass"
+    } else {
+        "fail"
+    };
     let expected_acceptance = if !derived_violations.is_empty() {
         "rejected"
     } else if !gate_decision.boundaries.is_empty() {
@@ -758,7 +831,8 @@ pub fn verify_pcrate_dir(
             return Err(format!(
                 "Stage 2 violation: AST agnosticism pair A file missing: '{}'",
                 pair.ast_a_file
-            ).into());
+            )
+            .into());
         }
         let hash_a = compute_sha256_hex(&path_a)?;
         if hash_a != pair.ast_a_hash {
@@ -773,7 +847,8 @@ pub fn verify_pcrate_dir(
             return Err(format!(
                 "Stage 2 violation: AST agnosticism pair B file missing: '{}'",
                 pair.ast_b_file
-            ).into());
+            )
+            .into());
         }
         let hash_b = compute_sha256_hex(&path_b)?;
         if hash_b != pair.ast_b_hash {
@@ -787,7 +862,8 @@ pub fn verify_pcrate_dir(
             return Err(format!(
                 "Stage 2 violation: AST agnosticism pair '{}' is marked unverified",
                 pair.pair_id
-            ).into());
+            )
+            .into());
         }
     }
 
@@ -810,7 +886,9 @@ pub fn verify_pcrate_dir(
                     } else if ep.is_dir() {
                         for sub in fs::read_dir(&ep)? {
                             let sub_path = sub?.path();
-                            if sub_path.is_file() && compute_sha256_hex(&sub_path)? == inh.attestation_sha256 {
+                            if sub_path.is_file()
+                                && compute_sha256_hex(&sub_path)? == inh.attestation_sha256
+                            {
                                 resolved = true;
                                 break;
                             }
@@ -818,7 +896,8 @@ pub fn verify_pcrate_dir(
                     }
                 }
             }
-            let prov_str = fs::read_to_string(root.join("provenance/PROVENANCE.toml")).unwrap_or_default();
+            let prov_str =
+                fs::read_to_string(root.join("provenance/PROVENANCE.toml")).unwrap_or_default();
             if prov_str.contains(&inh.attestation_sha256) {
                 resolved = true;
             }
@@ -868,7 +947,9 @@ pub fn verify_pcrate_dir(
 }
 
 /// Inspect a .pcrate archive bundle, returning structured report
-pub fn inspect_pcrate(pcrate_path: &Path) -> Result<PCrateInspectReport, Box<dyn std::error::Error>> {
+pub fn inspect_pcrate(
+    pcrate_path: &Path,
+) -> Result<PCrateInspectReport, Box<dyn std::error::Error>> {
     let temp_guard = TempDirGuard::new("prime-pcrate-inspect")?;
     let root = temp_guard.path();
 
@@ -963,7 +1044,11 @@ baseline = "NIST_SP_800_53_Rev5"
         let prov_str = r#"evidence_schema_sha256 = "e81bce25c110234764afffe1176d9f28dd3c8562808f3f925bef2159bd808af4"
 "#;
         fs::write(root.join("provenance/PROVENANCE.toml"), prov_str).unwrap();
-        fs::write(root.join("provenance/toolchain-matrix.json"), r#"{"rustc":"1.99.1"}"#).unwrap();
+        fs::write(
+            root.join("provenance/toolchain-matrix.json"),
+            r#"{"rustc":"1.99.1"}"#,
+        )
+        .unwrap();
 
         // 4. evidence/attestations/si-7-1.lean-attestation.json
         let att_content = r#"{"control_id":"si-7.1","witness_file":"tests/fixtures/w_si71_01_hybrid_deriv.lean"}"#;
@@ -1069,7 +1154,11 @@ baseline = "NIST_SP_800_53_Rev5"
             "violations": [],
             "evidence_sha256": ev_sha
         });
-        fs::write(root.join("evidence/gate-decision.json"), serde_json::to_string_pretty(&gd_doc).unwrap()).unwrap();
+        fs::write(
+            root.join("evidence/gate-decision.json"),
+            serde_json::to_string_pretty(&gd_doc).unwrap(),
+        )
+        .unwrap();
 
         // 8. evidence/release-status.json
         let rs_doc = serde_json::json!({
@@ -1086,7 +1175,11 @@ baseline = "NIST_SP_800_53_Rev5"
             "narrative_disclosures": [],
             "summary": ev_doc["summary"]
         });
-        fs::write(root.join("evidence/release-status.json"), serde_json::to_string_pretty(&rs_doc).unwrap()).unwrap();
+        fs::write(
+            root.join("evidence/release-status.json"),
+            serde_json::to_string_pretty(&rs_doc).unwrap(),
+        )
+        .unwrap();
 
         refresh_manifest_and_sha256(root, &policy_sha);
     }
@@ -1139,7 +1232,11 @@ baseline = "NIST_SP_800_53_Rev5"
         let pcrate_hash = compute_sha256_hex(&root.join("PCrate.toml")).unwrap();
         manifest_lines.push(format!("{}  PCrate.toml", pcrate_hash));
         manifest_lines.sort();
-        fs::write(root.join("MANIFEST.SHA256"), manifest_lines.join("\n") + "\n").unwrap();
+        fs::write(
+            root.join("MANIFEST.SHA256"),
+            manifest_lines.join("\n") + "\n",
+        )
+        .unwrap();
     }
 
     #[test]
@@ -1166,7 +1263,11 @@ baseline = "NIST_SP_800_53_Rev5"
         fs::write(&cargo_toml, content).unwrap();
 
         let err = verify_pcrate_dir(temp.path(), None).unwrap_err();
-        assert!(err.to_string().contains("Invariant 1 violation"), "Expected Invariant 1 error, got: {}", err);
+        assert!(
+            err.to_string().contains("Invariant 1 violation"),
+            "Expected Invariant 1 error, got: {}",
+            err
+        );
     }
 
     #[test]
@@ -1175,12 +1276,21 @@ baseline = "NIST_SP_800_53_Rev5"
         setup_test_bundle_dir(temp.path());
 
         // Corrupt evidence.json schema
-        fs::write(temp.path().join("evidence/evidence.json"), r#"{"invalid":"schema"}"#).unwrap();
-        let policy_sha = compute_sha256_hex(&temp.path().join("provenance/lean-rust.toml")).unwrap();
+        fs::write(
+            temp.path().join("evidence/evidence.json"),
+            r#"{"invalid":"schema"}"#,
+        )
+        .unwrap();
+        let policy_sha =
+            compute_sha256_hex(&temp.path().join("provenance/lean-rust.toml")).unwrap();
         refresh_manifest_and_sha256(temp.path(), &policy_sha);
 
         let err = verify_pcrate_dir(temp.path(), None).unwrap_err();
-        assert!(err.to_string().contains("Invariant 2 violation"), "Expected Invariant 2 error, got: {}", err);
+        assert!(
+            err.to_string().contains("Invariant 2 violation"),
+            "Expected Invariant 2 error, got: {}",
+            err
+        );
     }
 
     #[test]
@@ -1190,15 +1300,21 @@ baseline = "NIST_SP_800_53_Rev5"
 
         // Alter gate-decision.json claim: claim failure when evidence is passing
         let gd_path = temp.path().join("evidence/gate-decision.json");
-        let mut gd: serde_json::Value = serde_json::from_str(&fs::read_to_string(&gd_path).unwrap()).unwrap();
+        let mut gd: serde_json::Value =
+            serde_json::from_str(&fs::read_to_string(&gd_path).unwrap()).unwrap();
         gd["component_checks"] = serde_json::Value::String("fail".to_string());
         fs::write(&gd_path, serde_json::to_string_pretty(&gd).unwrap()).unwrap();
 
-        let policy_sha = compute_sha256_hex(&temp.path().join("provenance/lean-rust.toml")).unwrap();
+        let policy_sha =
+            compute_sha256_hex(&temp.path().join("provenance/lean-rust.toml")).unwrap();
         refresh_manifest_and_sha256(temp.path(), &policy_sha);
 
         let err = verify_pcrate_dir(temp.path(), None).unwrap_err();
-        assert!(err.to_string().contains("Invariant 3 violation"), "Expected Invariant 3 error, got: {}", err);
+        assert!(
+            err.to_string().contains("Invariant 3 violation"),
+            "Expected Invariant 3 error, got: {}",
+            err
+        );
     }
 
     #[test]
@@ -1207,15 +1323,22 @@ baseline = "NIST_SP_800_53_Rev5"
         setup_test_bundle_dir(temp.path());
 
         // Corrupt witness content
-        let wit_path = temp.path().join("evidence/attestations/si-7-1.lean-attestation.json");
+        let wit_path = temp
+            .path()
+            .join("evidence/attestations/si-7-1.lean-attestation.json");
         fs::write(&wit_path, r#"{"tampered":"witness"}"#).unwrap();
 
         // Update Invariant 1 hashes so Invariant 4 specifically fires
-        let policy_sha = compute_sha256_hex(&temp.path().join("provenance/lean-rust.toml")).unwrap();
+        let policy_sha =
+            compute_sha256_hex(&temp.path().join("provenance/lean-rust.toml")).unwrap();
         refresh_manifest_and_sha256(temp.path(), &policy_sha);
 
         let err = verify_pcrate_dir(temp.path(), None).unwrap_err();
-        assert!(err.to_string().contains("Invariant 4 violation"), "Expected Invariant 4 error, got: {}", err);
+        assert!(
+            err.to_string().contains("Invariant 4 violation"),
+            "Expected Invariant 4 error, got: {}",
+            err
+        );
     }
 
     #[test]
@@ -1224,14 +1347,21 @@ baseline = "NIST_SP_800_53_Rev5"
         setup_test_bundle_dir(temp.path());
 
         // Delete consumed attestation file
-        let con_path = temp.path().join("consumed/aws/pe-3.consumed-attestation.json");
+        let con_path = temp
+            .path()
+            .join("consumed/aws/pe-3.consumed-attestation.json");
         fs::remove_file(&con_path).unwrap();
 
-        let policy_sha = compute_sha256_hex(&temp.path().join("provenance/lean-rust.toml")).unwrap();
+        let policy_sha =
+            compute_sha256_hex(&temp.path().join("provenance/lean-rust.toml")).unwrap();
         refresh_manifest_and_sha256(temp.path(), &policy_sha);
 
         let err = verify_pcrate_dir(temp.path(), None).unwrap_err();
-        assert!(err.to_string().contains("Invariant 5 violation"), "Expected Invariant 5 error, got: {}", err);
+        assert!(
+            err.to_string().contains("Invariant 5 violation"),
+            "Expected Invariant 5 error, got: {}",
+            err
+        );
     }
 
     #[test]
@@ -1241,16 +1371,22 @@ baseline = "NIST_SP_800_53_Rev5"
 
         // Mutate gate-decision.json to have open gate violations but empty boundaries
         let gd_path = temp.path().join("evidence/gate-decision.json");
-        let mut gd: serde_json::Value = serde_json::from_str(&fs::read_to_string(&gd_path).unwrap()).unwrap();
+        let mut gd: serde_json::Value =
+            serde_json::from_str(&fs::read_to_string(&gd_path).unwrap()).unwrap();
         gd["violations"] = serde_json::json!(["Fatal: unadjudicated defect detected"]);
         gd["boundaries"] = serde_json::json!([]);
         fs::write(&gd_path, serde_json::to_string_pretty(&gd).unwrap()).unwrap();
 
-        let policy_sha = compute_sha256_hex(&temp.path().join("provenance/lean-rust.toml")).unwrap();
+        let policy_sha =
+            compute_sha256_hex(&temp.path().join("provenance/lean-rust.toml")).unwrap();
         refresh_manifest_and_sha256(temp.path(), &policy_sha);
 
         let err = verify_pcrate_dir(temp.path(), None).unwrap_err();
-        assert!(err.to_string().contains("Invariant 6 violation"), "Expected Invariant 6 error, got: {}", err);
+        assert!(
+            err.to_string().contains("Invariant 6 violation"),
+            "Expected Invariant 6 error, got: {}",
+            err
+        );
     }
     #[test]
     fn test_stage5_meta_bundle_component_tamper_fails_closed() {
@@ -1262,20 +1398,35 @@ baseline = "NIST_SP_800_53_Rev5"
         fs::create_dir_all(&consumed_comp_dir).unwrap();
         let ast_pairs_dir = consumed_comp_dir.join("source/ast_pairs");
         fs::create_dir_all(&ast_pairs_dir).unwrap();
-        fs::write(ast_pairs_dir.join("pair01_scalar_commutativity_a.tex"), "2 x").unwrap();
+        fs::write(
+            ast_pairs_dir.join("pair01_scalar_commutativity_a.tex"),
+            "2 x",
+        )
+        .unwrap();
 
-        let policy_sha = compute_sha256_hex(&temp.path().join("provenance/lean-rust.toml")).unwrap();
+        let policy_sha =
+            compute_sha256_hex(&temp.path().join("provenance/lean-rust.toml")).unwrap();
         refresh_manifest_and_sha256(temp.path(), &policy_sha);
 
         // Verify meta-bundle initially passes
-        let report = verify_pcrate_dir(temp.path(), None).expect("meta-bundle verification should pass");
+        let report =
+            verify_pcrate_dir(temp.path(), None).expect("meta-bundle verification should pass");
         assert_eq!(report.crate_name, "unit-crate");
 
         // Now tamper with the consumed component bundle (mutate ast_pairs file)
-        fs::write(ast_pairs_dir.join("pair01_scalar_commutativity_a.tex"), "tampered").unwrap();
+        fs::write(
+            ast_pairs_dir.join("pair01_scalar_commutativity_a.tex"),
+            "tampered",
+        )
+        .unwrap();
 
         let err = verify_pcrate_dir(temp.path(), None).unwrap_err();
-        assert!(err.to_string().contains("Invariant 5 violation") || err.to_string().contains("violation"), "Expected consumption or Invariant violation, got: {}", err);
+        assert!(
+            err.to_string().contains("Invariant 5 violation")
+                || err.to_string().contains("violation"),
+            "Expected consumption or Invariant violation, got: {}",
+            err
+        );
     }
     #[test]
     fn test_pp_01() {
@@ -1335,9 +1486,15 @@ mod kani_proofs {
         }
 
         if all_match {
-            kani::assert(result.is_ok(), "SI-7 software integrity: matching hashes must yield Ok");
+            kani::assert(
+                result.is_ok(),
+                "SI-7 software integrity: matching hashes must yield Ok",
+            );
         } else {
-            kani::assert(result.is_err(), "SI-7 software integrity: any hash mismatch must yield Err");
+            kani::assert(
+                result.is_err(),
+                "SI-7 software integrity: any hash mismatch must yield Err",
+            );
         }
     }
 }

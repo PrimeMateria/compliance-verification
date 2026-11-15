@@ -1,6 +1,6 @@
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{parse_macro_input, ItemFn, Meta, Expr, ExprLit, Lit};
+use syn::{parse_macro_input, Expr, ExprLit, ItemFn, Lit, Meta};
 
 #[proc_macro_attribute]
 pub fn oscal_control(attr: TokenStream, item: TokenStream) -> TokenStream {
@@ -20,7 +20,10 @@ pub fn oscal_control(attr: TokenStream, item: TokenStream) -> TokenStream {
                 s.trim_matches('"').to_string()
             }
             Meta::NameValue(nv) => {
-                if let Expr::Lit(ExprLit { lit: Lit::Str(s), .. }) = nv.value {
+                if let Expr::Lit(ExprLit {
+                    lit: Lit::Str(s), ..
+                }) = nv.value
+                {
                     s.value()
                 } else {
                     "UNKNOWN-CONTROL".to_string()

@@ -312,11 +312,25 @@ impl ProfileResolver {
         if let Some(pos) = self.visiting_stack.iter().position(|p| p == &canonical) {
             let mut names: Vec<String> = self.visiting_stack[pos..]
                 .iter()
-                .map(|p| p.file_name().unwrap_or_default().to_string_lossy().to_string())
+                .map(|p| {
+                    p.file_name()
+                        .unwrap_or_default()
+                        .to_string_lossy()
+                        .to_string()
+                })
                 .collect();
-            names.push(canonical.file_name().unwrap_or_default().to_string_lossy().to_string());
+            names.push(
+                canonical
+                    .file_name()
+                    .unwrap_or_default()
+                    .to_string_lossy()
+                    .to_string(),
+            );
             let cycle_path = names.join(" -> ");
-            return Err(ProfileError::CycleDetected(format!("Cycle: {}", cycle_path)));
+            return Err(ProfileError::CycleDetected(format!(
+                "Cycle: {}",
+                cycle_path
+            )));
         }
 
         // Diamond import: if already resolved and not in visiting stack, return cached data
@@ -400,11 +414,8 @@ impl ProfileResolver {
                     effective_catalog_path = child_data.source_catalog_path.clone();
                     effective_catalog_hash = child_data.source_catalog_hash.clone();
 
-                    let filtered_child_controls = filter_child_profile_controls(
-                        imp,
-                        &child_data.selected_control_ids,
-                        href,
-                    )?;
+                    let filtered_child_controls =
+                        filter_child_profile_controls(imp, &child_data.selected_control_ids, href)?;
                     selected_control_ids.extend(filtered_child_controls);
 
                     // Sibling import parameter precedence: later siblings override earlier siblings
@@ -468,7 +479,10 @@ impl ProfileResolver {
         let abs_catalog = find_catalog_path(catalog_path, &self.repo_root).ok_or_else(|| {
             ProfileError::Io(std::io::Error::new(
                 std::io::ErrorKind::NotFound,
-                format!("Catalog file '{}' not found in workspace", catalog_path.display()),
+                format!(
+                    "Catalog file '{}' not found in workspace",
+                    catalog_path.display()
+                ),
             ))
         })?;
 
@@ -498,12 +512,16 @@ impl ProfileResolver {
             ResolvedProfileData {
                 profile_uuid: "00000000-0000-4000-8000-000000000001".to_string(),
                 profile_title: "PRIME Default Resolved Baseline".to_string(),
-                file_hash: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855".to_string(),
+                file_hash: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+                    .to_string(),
                 selected_control_ids: all_base,
                 parameter_overrides: HashMap::new(),
                 import_chain: vec![ImportChainNode {
                     href: abs_catalog.display().to_string(),
-                    uuid: cat_doc["catalog"].get("uuid").and_then(|u| u.as_str()).map(|s| s.to_string()),
+                    uuid: cat_doc["catalog"]
+                        .get("uuid")
+                        .and_then(|u| u.as_str())
+                        .map(|s| s.to_string()),
                     sha256: catalog_hash.clone(),
                 }],
                 source_catalog_path: abs_catalog.clone(),
@@ -621,7 +639,10 @@ fn index_catalog_controls(
     let mut controls_map = HashMap::new();
     let mut all_params = HashSet::new();
 
-    if let Some(params) = catalog_doc["catalog"].get("params").and_then(|p| p.as_array()) {
+    if let Some(params) = catalog_doc["catalog"]
+        .get("params")
+        .and_then(|p| p.as_array())
+    {
         for p in params {
             if let Some(id) = p.get("id").and_then(|i| i.as_str()) {
                 all_params.insert(id.to_string());
@@ -629,7 +650,10 @@ fn index_catalog_controls(
         }
     }
 
-    if let Some(groups) = catalog_doc["catalog"].get("groups").and_then(|g| g.as_array()) {
+    if let Some(groups) = catalog_doc["catalog"]
+        .get("groups")
+        .and_then(|g| g.as_array())
+    {
         for group in groups {
             if let Some(controls) = group.get("controls").and_then(|c| c.as_array()) {
                 for control in controls {
@@ -639,7 +663,10 @@ fn index_catalog_controls(
         }
     }
 
-    if let Some(controls) = catalog_doc["catalog"].get("controls").and_then(|c| c.as_array()) {
+    if let Some(controls) = catalog_doc["catalog"]
+        .get("controls")
+        .and_then(|c| c.as_array())
+    {
         for control in controls {
             index_single_control(control, None, &mut controls_map, &mut all_params);
         }
@@ -718,7 +745,9 @@ fn apply_control_selectors(
 ) -> Result<HashSet<String>, ProfileError> {
     let mut selected = HashSet::new();
 
-    let inc_controls = import_obj.get("include-controls").and_then(|i| i.as_array());
+    let inc_controls = import_obj
+        .get("include-controls")
+        .and_then(|i| i.as_array());
     let inc_all = import_obj.get("include-all").is_some();
 
     if let Some(includes) = inc_controls {
@@ -755,7 +784,10 @@ fn apply_control_selectors(
         }
     }
 
-    if let Some(excludes) = import_obj.get("exclude-controls").and_then(|e| e.as_array()) {
+    if let Some(excludes) = import_obj
+        .get("exclude-controls")
+        .and_then(|e| e.as_array())
+    {
         for exc in excludes {
             if let Some(with_ids) = exc.get("with-ids").and_then(|w| w.as_array()) {
                 for id_val in with_ids {
@@ -778,7 +810,9 @@ fn filter_child_profile_controls(
     import_href: &str,
 ) -> Result<HashSet<String>, ProfileError> {
     let mut selected = HashSet::new();
-    let inc_controls = import_obj.get("include-controls").and_then(|i| i.as_array());
+    let inc_controls = import_obj
+        .get("include-controls")
+        .and_then(|i| i.as_array());
 
     if let Some(includes) = inc_controls {
         if !includes.is_empty() {
@@ -813,7 +847,10 @@ fn filter_child_profile_controls(
         selected.extend(child_controls.clone());
     }
 
-    if let Some(excludes) = import_obj.get("exclude-controls").and_then(|e| e.as_array()) {
+    if let Some(excludes) = import_obj
+        .get("exclude-controls")
+        .and_then(|e| e.as_array())
+    {
         for exc in excludes {
             if let Some(with_ids) = exc.get("with-ids").and_then(|w| w.as_array()) {
                 for id_val in with_ids {
@@ -889,7 +926,9 @@ pub fn resolve_profile(
 }
 
 /// Asserts that a resolved catalog does not retain the `skeleton` resolution status.
-pub fn assert_resolved_catalog_not_skeleton(catalog: &serde_json::Value) -> Result<(), ProfileError> {
+pub fn assert_resolved_catalog_not_skeleton(
+    catalog: &serde_json::Value,
+) -> Result<(), ProfileError> {
     if let Some(props) = catalog
         .get("catalog")
         .and_then(|c| c.get("metadata"))
@@ -943,14 +982,20 @@ mod tests {
                 ]
             }
         });
-        fs::write(&profile_path, serde_json::to_string_pretty(&profile_json).unwrap()).unwrap();
+        fs::write(
+            &profile_path,
+            serde_json::to_string_pretty(&profile_json).unwrap(),
+        )
+        .unwrap();
 
         let catalog_path = Path::new("schemas/catalogs/NIST_SP_800-53_rev5_catalog.json");
         let resolved = resolve_profile(&profile_path, catalog_path, Path::new("."), None)
             .expect("Catalog href must resolve via catalog index");
 
         assert!(resolved.get("catalog").is_some());
-        let groups = resolved["catalog"]["groups"].as_array().expect("groups array");
+        let groups = resolved["catalog"]["groups"]
+            .as_array()
+            .expect("groups array");
         assert!(!groups.is_empty());
         assert_eq!(groups[0]["controls"][0]["id"], "ac-1");
 
@@ -986,7 +1031,11 @@ mod tests {
                 ]
             }
         });
-        fs::write(&child_path, serde_json::to_string_pretty(&child_json).unwrap()).unwrap();
+        fs::write(
+            &child_path,
+            serde_json::to_string_pretty(&child_json).unwrap(),
+        )
+        .unwrap();
 
         let parent_path = repo_root.join("overlay_profile.json");
         let parent_json = json!({
@@ -1011,7 +1060,11 @@ mod tests {
                 ]
             }
         });
-        fs::write(&parent_path, serde_json::to_string_pretty(&parent_json).unwrap()).unwrap();
+        fs::write(
+            &parent_path,
+            serde_json::to_string_pretty(&parent_json).unwrap(),
+        )
+        .unwrap();
 
         let mut resolver = ProfileResolver::new(PathBuf::from("."), None);
         resolver.register_profile("base_profile.json", child_path.clone());
@@ -1058,13 +1111,21 @@ mod tests {
                 ]
             }
         });
-        fs::write(&profile_path, serde_json::to_string_pretty(&profile_json).unwrap()).unwrap();
+        fs::write(
+            &profile_path,
+            serde_json::to_string_pretty(&profile_json).unwrap(),
+        )
+        .unwrap();
 
         let catalog_path = Path::new("schemas/catalogs/NIST_SP_800-53_rev5_catalog.json");
         let resolved = resolve_profile(&profile_path, catalog_path, Path::new("."), None).unwrap();
 
-        let props = resolved["catalog"]["metadata"]["props"].as_array().expect("props");
-        assert!(props.iter().any(|p| p["name"] == "resolution-status" && p["value"] == "resolved"));
+        let props = resolved["catalog"]["metadata"]["props"]
+            .as_array()
+            .expect("props");
+        assert!(props
+            .iter()
+            .any(|p| p["name"] == "resolution-status" && p["value"] == "resolved"));
         assert!(props.iter().any(|p| p["name"] == "source-profile-uuid"));
         assert!(props.iter().any(|p| p["name"] == "source-profile-sha256"));
         assert!(props.iter().any(|p| p["name"] == "source-catalog-sha256"));
@@ -1240,7 +1301,11 @@ mod tests {
 
         assert!(resolved.get("catalog").is_some());
         let controls = &resolved["catalog"]["groups"][0]["controls"];
-        assert_eq!(controls.as_array().unwrap().len(), 2, "Union of B and C must include both ac-1 and ac-2");
+        assert_eq!(
+            controls.as_array().unwrap().len(),
+            2,
+            "Union of B and C must include both ac-1 and ac-2"
+        );
 
         let _ = fs::remove_dir_all(repo_root);
     }
@@ -1312,7 +1377,10 @@ mod tests {
             .expect("Deep 3-level import chain must resolve cleanly");
 
         assert!(resolved.get("catalog").is_some());
-        assert_eq!(resolved["catalog"]["groups"][0]["controls"][0]["id"], "ac-1");
+        assert_eq!(
+            resolved["catalog"]["groups"][0]["controls"][0]["id"],
+            "ac-1"
+        );
 
         let _ = fs::remove_dir_all(repo_root);
     }
@@ -1339,7 +1407,11 @@ mod tests {
                 ]
             }
         });
-        fs::write(&profile_path, serde_json::to_string_pretty(&bad_json).unwrap()).unwrap();
+        fs::write(
+            &profile_path,
+            serde_json::to_string_pretty(&bad_json).unwrap(),
+        )
+        .unwrap();
 
         let catalog_path = Path::new("schemas/catalogs/NIST_SP_800-53_rev5_catalog.json");
         let err = resolve_profile(&profile_path, catalog_path, Path::new("."), None)
@@ -1382,7 +1454,11 @@ mod tests {
                 ]
             }
         });
-        fs::write(&profile_path, serde_json::to_string_pretty(&p_json).unwrap()).unwrap();
+        fs::write(
+            &profile_path,
+            serde_json::to_string_pretty(&p_json).unwrap(),
+        )
+        .unwrap();
 
         let catalog_path = Path::new("schemas/catalogs/NIST_SP_800-53_rev5_catalog.json");
         let resolved = resolve_profile(&profile_path, catalog_path, Path::new("."), None).unwrap();
@@ -1428,7 +1504,11 @@ mod tests {
                 ]
             }
         });
-        fs::write(&profile_path, serde_json::to_string_pretty(&p_json).unwrap()).unwrap();
+        fs::write(
+            &profile_path,
+            serde_json::to_string_pretty(&p_json).unwrap(),
+        )
+        .unwrap();
 
         let catalog_path = Path::new("schemas/catalogs/NIST_SP_800-53_rev5_catalog.json");
         let resolved = resolve_profile(&profile_path, catalog_path, Path::new("."), None).unwrap();
@@ -1474,7 +1554,11 @@ mod tests {
                 ]
             }
         });
-        fs::write(&profile_path, serde_json::to_string_pretty(&p_json).unwrap()).unwrap();
+        fs::write(
+            &profile_path,
+            serde_json::to_string_pretty(&p_json).unwrap(),
+        )
+        .unwrap();
 
         let catalog_path = Path::new("schemas/catalogs/NIST_SP_800-53_rev5_catalog.json");
         let resolved = resolve_profile(&profile_path, catalog_path, Path::new("."), None).unwrap();
@@ -1514,7 +1598,11 @@ mod tests {
                 ]
             }
         });
-        fs::write(&profile_path, serde_json::to_string_pretty(&p_json).unwrap()).unwrap();
+        fs::write(
+            &profile_path,
+            serde_json::to_string_pretty(&p_json).unwrap(),
+        )
+        .unwrap();
 
         let catalog_path = Path::new("schemas/catalogs/NIST_SP_800-53_rev5_catalog.json");
         let err = resolve_profile(&profile_path, catalog_path, Path::new("."), None)
@@ -1564,7 +1652,11 @@ mod tests {
                 ]
             }
         });
-        fs::write(&profile_path, serde_json::to_string_pretty(&p_json).unwrap()).unwrap();
+        fs::write(
+            &profile_path,
+            serde_json::to_string_pretty(&p_json).unwrap(),
+        )
+        .unwrap();
 
         let catalog_path = Path::new("schemas/catalogs/NIST_SP_800-53_rev5_catalog.json");
         let resolved = resolve_profile(&profile_path, catalog_path, Path::new("."), None).unwrap();
@@ -1609,7 +1701,11 @@ mod tests {
                 }
             }
         });
-        fs::write(&profile_path, serde_json::to_string_pretty(&p_json).unwrap()).unwrap();
+        fs::write(
+            &profile_path,
+            serde_json::to_string_pretty(&p_json).unwrap(),
+        )
+        .unwrap();
 
         let catalog_path = Path::new("schemas/catalogs/NIST_SP_800-53_rev5_catalog.json");
         let resolved = resolve_profile(&profile_path, catalog_path, Path::new("."), None).unwrap();
@@ -1617,7 +1713,10 @@ mod tests {
         let groups = resolved["catalog"]["groups"].as_array().expect("groups");
         let ac1 = &groups[0]["controls"][0];
         let params = ac1["params"].as_array().expect("params");
-        let ac1_prm1 = params.iter().find(|p| p["id"] == "ac-1_prm_1").expect("ac-1_prm_1");
+        let ac1_prm1 = params
+            .iter()
+            .find(|p| p["id"] == "ac-1_prm_1")
+            .expect("ac-1_prm_1");
         assert_eq!(ac1_prm1["values"][0], "annually");
 
         let _ = fs::remove_dir_all(repo_root);
@@ -1653,7 +1752,11 @@ mod tests {
                 }
             }
         });
-        fs::write(&base_path, serde_json::to_string_pretty(&base_json).unwrap()).unwrap();
+        fs::write(
+            &base_path,
+            serde_json::to_string_pretty(&base_json).unwrap(),
+        )
+        .unwrap();
 
         let inner_path = repo_root.join("inner.json");
         let inner_json = json!({
@@ -1674,7 +1777,11 @@ mod tests {
                 }
             }
         });
-        fs::write(&inner_path, serde_json::to_string_pretty(&inner_json).unwrap()).unwrap();
+        fs::write(
+            &inner_path,
+            serde_json::to_string_pretty(&inner_json).unwrap(),
+        )
+        .unwrap();
 
         let mut resolver = ProfileResolver::new(PathBuf::from("."), None);
         resolver.register_profile("base.json", base_path.clone());
@@ -1683,8 +1790,16 @@ mod tests {
         let resolved = resolver.resolve(&inner_path, catalog_path).unwrap();
 
         let ac1 = &resolved["catalog"]["groups"][0]["controls"][0];
-        let prm1 = ac1["params"].as_array().unwrap().iter().find(|p| p["id"] == "ac-1_prm_1").unwrap();
-        assert_eq!(prm1["values"][0], "inner_wins", "Innermost set-parameters must override imported base");
+        let prm1 = ac1["params"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|p| p["id"] == "ac-1_prm_1")
+            .unwrap();
+        assert_eq!(
+            prm1["values"][0], "inner_wins",
+            "Innermost set-parameters must override imported base"
+        );
 
         let _ = fs::remove_dir_all(repo_root);
     }
@@ -1754,7 +1869,11 @@ mod tests {
                 ]
             }
         });
-        fs::write(&parent_path, serde_json::to_string_pretty(&parent_json).unwrap()).unwrap();
+        fs::write(
+            &parent_path,
+            serde_json::to_string_pretty(&parent_json).unwrap(),
+        )
+        .unwrap();
 
         let mut resolver = ProfileResolver::new(PathBuf::from("."), None);
         resolver.register_profile("sib1.json", s1_path.clone());
@@ -1764,8 +1883,16 @@ mod tests {
         let resolved = resolver.resolve(&parent_path, catalog_path).unwrap();
 
         let ac1 = &resolved["catalog"]["groups"][0]["controls"][0];
-        let prm1 = ac1["params"].as_array().unwrap().iter().find(|p| p["id"] == "ac-1_prm_1").unwrap();
-        assert_eq!(prm1["values"][0], "sib2_later_wins", "Later sibling in imports[] must override earlier sibling");
+        let prm1 = ac1["params"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|p| p["id"] == "ac-1_prm_1")
+            .unwrap();
+        assert_eq!(
+            prm1["values"][0], "sib2_later_wins",
+            "Later sibling in imports[] must override earlier sibling"
+        );
 
         let _ = fs::remove_dir_all(repo_root);
     }
@@ -1800,7 +1927,11 @@ mod tests {
                 }
             }
         });
-        fs::write(&profile_path, serde_json::to_string_pretty(&p_json).unwrap()).unwrap();
+        fs::write(
+            &profile_path,
+            serde_json::to_string_pretty(&p_json).unwrap(),
+        )
+        .unwrap();
 
         let catalog_path = Path::new("schemas/catalogs/NIST_SP_800-53_rev5_catalog.json");
         let err = resolve_profile(&profile_path, catalog_path, Path::new("."), None)
@@ -1823,8 +1954,13 @@ mod tests {
 
     #[test]
     fn test_e_oscal_024_registered_in_diagnostic_codes() {
-        assert_eq!(OscalErrorCode::ProfileParameterUnresolved.as_str(), "E-OSCAL-024");
-        assert!(!OscalErrorCode::ProfileParameterUnresolved.default_title().is_empty());
+        assert_eq!(
+            OscalErrorCode::ProfileParameterUnresolved.as_str(),
+            "E-OSCAL-024"
+        );
+        assert!(!OscalErrorCode::ProfileParameterUnresolved
+            .default_title()
+            .is_empty());
     }
 
     #[test]
@@ -1852,15 +1988,25 @@ mod tests {
                 ]
             }
         });
-        fs::write(&profile_path, serde_json::to_string_pretty(&p_json).unwrap()).unwrap();
+        fs::write(
+            &profile_path,
+            serde_json::to_string_pretty(&p_json).unwrap(),
+        )
+        .unwrap();
 
         let catalog_path = Path::new("schemas/catalogs/NIST_SP_800-53_rev5_catalog.json");
         let resolved = resolve_profile(&profile_path, catalog_path, Path::new("."), None).unwrap();
 
-        let groups = resolved["catalog"]["groups"].as_array().expect("groups array");
+        let groups = resolved["catalog"]["groups"]
+            .as_array()
+            .expect("groups array");
         // Verify groups preserve their standard IDs and titles
         let group_ids: Vec<&str> = groups.iter().filter_map(|g| g["id"].as_str()).collect();
-        assert_eq!(group_ids, vec!["ac", "si"], "Original source group ordering must be preserved");
+        assert_eq!(
+            group_ids,
+            vec!["ac", "si"],
+            "Original source group ordering must be preserved"
+        );
 
         let _ = fs::remove_dir_all(repo_root);
     }
@@ -1876,8 +2022,13 @@ mod tests {
         )
         .unwrap();
 
-        let props = resolved["catalog"]["metadata"]["props"].as_array().expect("props");
-        let status = props.iter().find(|p| p["name"] == "resolution-status").expect("resolution-status");
+        let props = resolved["catalog"]["metadata"]["props"]
+            .as_array()
+            .expect("props");
+        let status = props
+            .iter()
+            .find(|p| p["name"] == "resolution-status")
+            .expect("resolution-status");
         assert_eq!(
             status["value"], "resolved",
             "resolution-status must be 'resolved', never 'skeleton'"
@@ -1886,7 +2037,9 @@ mod tests {
 
     #[test]
     fn test_resolved_catalog_byte_identical_under_fixed_clock() {
-        let fixed_now = DateTime::parse_from_rfc3339("2026-11-11T12:00:00Z").unwrap().with_timezone(&Utc);
+        let fixed_now = DateTime::parse_from_rfc3339("2026-11-11T12:00:00Z")
+            .unwrap()
+            .with_timezone(&Utc);
         let catalog_path = Path::new("schemas/catalogs/NIST_SP_800-53_rev5_catalog.json");
 
         let res1 = resolve_profile(
@@ -1907,7 +2060,10 @@ mod tests {
 
         let s1 = serde_json::to_string_pretty(&res1).unwrap();
         let s2 = serde_json::to_string_pretty(&res2).unwrap();
-        assert_eq!(s1, s2, "Resolved catalog must be byte-for-byte identical under fixed clock");
+        assert_eq!(
+            s1, s2,
+            "Resolved catalog must be byte-for-byte identical under fixed clock"
+        );
     }
 
     #[test]

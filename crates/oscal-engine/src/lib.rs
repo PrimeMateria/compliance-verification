@@ -6,8 +6,8 @@ pub mod evidence;
 pub mod gate_policy;
 pub mod history;
 pub mod monitor;
-pub mod poam;
 pub mod pcrate;
+pub mod poam;
 pub mod profile;
 pub mod registry;
 pub mod sap;
@@ -31,18 +31,23 @@ use oscal_types::*;
 use uuid::Uuid;
 
 /// Vendored schemas baked into the binary for validate-before-write guarantees
-pub const AR_SCHEMA_STR: &str = include_str!("../../../schemas/oscal_assessment-results_schema.json");
+pub const AR_SCHEMA_STR: &str =
+    include_str!("../../../schemas/oscal_assessment-results_schema.json");
 pub const POAM_SCHEMA_STR: &str = include_str!("../../../schemas/oscal_poam_schema.json");
 pub const SSP_SCHEMA_STR: &str = include_str!("../../../schemas/oscal_ssp_schema.json");
 pub const SAP_SCHEMA_STR: &str = include_str!("../../../schemas/oscal_assessment-plan_schema.json");
 pub const PROFILE_SCHEMA_STR: &str = include_str!("../../../schemas/oscal_profile_schema.json");
 pub const CATALOG_SCHEMA_STR: &str = include_str!("../../../schemas/oscal_catalog_schema.json");
 pub const EVIDENCE_SCHEMA_STR: &str = include_str!("../../../schemas/evidence.schema.json");
-pub const TRESTLE_ATTESTATION_SCHEMA_STR: &str = include_str!("../../../schemas/trestle-attestation.schema.json");
-pub const GATE_RULE_REGISTRY_SCHEMA_STR: &str = include_str!("../../../schemas/gate-rule-registry.schema.json");
+pub const TRESTLE_ATTESTATION_SCHEMA_STR: &str =
+    include_str!("../../../schemas/trestle-attestation.schema.json");
+pub const GATE_RULE_REGISTRY_SCHEMA_STR: &str =
+    include_str!("../../../schemas/gate-rule-registry.schema.json");
 pub const GATE_RULE_REGISTRY_STR: &str = include_str!("../../../gate-rule-registry.toml");
-pub const PCRATE_MANIFEST_SCHEMA_STR: &str = include_str!("../../../schemas/pcrate-manifest.schema.json");
-pub const SUPPRESSED_FINDINGS_SCHEMA_STR: &str = include_str!("../../../schemas/suppressed-findings.schema.json");
+pub const PCRATE_MANIFEST_SCHEMA_STR: &str =
+    include_str!("../../../schemas/pcrate-manifest.schema.json");
+pub const SUPPRESSED_FINDINGS_SCHEMA_STR: &str =
+    include_str!("../../../schemas/suppressed-findings.schema.json");
 pub const CONTROL_ID_MAP_STR: &str = include_str!("../control-id-map.toml");
 
 /// Deterministic namespace UUID for PRIME OSCAL synthesis:
@@ -143,9 +148,18 @@ pub fn validate_poam(doc: &serde_json::Value) -> Result<(), Vec<String>> {
 /// Validate any JSON Value against the vendored Suppressed Findings schema
 pub fn validate_suppressed_findings(doc: &serde_json::Value) -> Result<(), Vec<String>> {
     let schema_val: serde_json::Value = serde_json::from_str(SUPPRESSED_FINDINGS_SCHEMA_STR)
-        .map_err(|e| vec![format!("Failed to parse vendored Suppressed Findings schema: {}", e)])?;
-    let validator = jsonschema::validator_for(&schema_val)
-        .map_err(|e| vec![format!("Failed to compile Suppressed Findings schema validator: {}", e)])?;
+        .map_err(|e| {
+            vec![format!(
+                "Failed to parse vendored Suppressed Findings schema: {}",
+                e
+            )]
+        })?;
+    let validator = jsonschema::validator_for(&schema_val).map_err(|e| {
+        vec![format!(
+            "Failed to compile Suppressed Findings schema validator: {}",
+            e
+        )]
+    })?;
     let errors: Vec<String> = validator
         .iter_errors(doc)
         .map(|e| format!("At '{}': {}", e.instance_path, e))
@@ -229,8 +243,12 @@ pub fn validate_catalog(doc: &serde_json::Value) -> Result<(), Vec<String>> {
 pub fn validate_evidence(doc: &serde_json::Value) -> Result<(), Vec<String>> {
     let schema_val: serde_json::Value = serde_json::from_str(EVIDENCE_SCHEMA_STR)
         .map_err(|e| vec![format!("Failed to parse vendored Evidence schema: {}", e)])?;
-    let validator = jsonschema::validator_for(&schema_val)
-        .map_err(|e| vec![format!("Failed to compile Evidence schema validator: {}", e)])?;
+    let validator = jsonschema::validator_for(&schema_val).map_err(|e| {
+        vec![format!(
+            "Failed to compile Evidence schema validator: {}",
+            e
+        )]
+    })?;
     let errors: Vec<String> = validator
         .iter_errors(doc)
         .map(|e| format!("At '{}': {}", e.instance_path, e))
@@ -245,9 +263,18 @@ pub fn validate_evidence(doc: &serde_json::Value) -> Result<(), Vec<String>> {
 /// Validate any JSON Value against the vendored Trestle Attestation 1.0.0 schema
 pub fn validate_trestle_attestation(doc: &serde_json::Value) -> Result<(), Vec<String>> {
     let schema_val: serde_json::Value = serde_json::from_str(TRESTLE_ATTESTATION_SCHEMA_STR)
-        .map_err(|e| vec![format!("Failed to parse vendored Trestle Attestation schema: {}", e)])?;
-    let validator = jsonschema::validator_for(&schema_val)
-        .map_err(|e| vec![format!("Failed to compile Trestle Attestation schema validator: {}", e)])?;
+        .map_err(|e| {
+            vec![format!(
+                "Failed to parse vendored Trestle Attestation schema: {}",
+                e
+            )]
+        })?;
+    let validator = jsonschema::validator_for(&schema_val).map_err(|e| {
+        vec![format!(
+            "Failed to compile Trestle Attestation schema validator: {}",
+            e
+        )]
+    })?;
     let errors: Vec<String> = validator
         .iter_errors(doc)
         .map(|e| format!("At '{}': {}", e.instance_path, e))
@@ -262,9 +289,18 @@ pub fn validate_trestle_attestation(doc: &serde_json::Value) -> Result<(), Vec<S
 /// Validate any JSON Value against the vendored Gate Rule Registry 2.0.0 schema
 pub fn validate_gate_rule_registry(doc: &serde_json::Value) -> Result<(), Vec<String>> {
     let schema_val: serde_json::Value = serde_json::from_str(GATE_RULE_REGISTRY_SCHEMA_STR)
-        .map_err(|e| vec![format!("Failed to parse vendored Gate Rule Registry schema: {}", e)])?;
-    let validator = jsonschema::validator_for(&schema_val)
-        .map_err(|e| vec![format!("Failed to compile Gate Rule Registry schema validator: {}", e)])?;
+        .map_err(|e| {
+            vec![format!(
+                "Failed to parse vendored Gate Rule Registry schema: {}",
+                e
+            )]
+        })?;
+    let validator = jsonschema::validator_for(&schema_val).map_err(|e| {
+        vec![format!(
+            "Failed to compile Gate Rule Registry schema validator: {}",
+            e
+        )]
+    })?;
     let errors: Vec<String> = validator
         .iter_errors(doc)
         .map(|e| format!("At '{}': {}", e.instance_path, e))
@@ -278,10 +314,19 @@ pub fn validate_gate_rule_registry(doc: &serde_json::Value) -> Result<(), Vec<St
 
 /// Validate any JSON Value against the vendored PCrate Manifest 1.0.0 schema (ADR-0017 Option 1)
 pub fn validate_pcrate_manifest(doc: &serde_json::Value) -> Result<(), Vec<String>> {
-    let schema_val: serde_json::Value = serde_json::from_str(PCRATE_MANIFEST_SCHEMA_STR)
-        .map_err(|e| vec![format!("Failed to parse vendored PCrate Manifest schema: {}", e)])?;
-    let validator = jsonschema::validator_for(&schema_val)
-        .map_err(|e| vec![format!("Failed to compile PCrate Manifest schema validator: {}", e)])?;
+    let schema_val: serde_json::Value =
+        serde_json::from_str(PCRATE_MANIFEST_SCHEMA_STR).map_err(|e| {
+            vec![format!(
+                "Failed to parse vendored PCrate Manifest schema: {}",
+                e
+            )]
+        })?;
+    let validator = jsonschema::validator_for(&schema_val).map_err(|e| {
+        vec![format!(
+            "Failed to compile PCrate Manifest schema validator: {}",
+            e
+        )]
+    })?;
     let errors: Vec<String> = validator
         .iter_errors(doc)
         .map(|e| format!("At '{}': {}", e.instance_path, e))
@@ -358,7 +403,9 @@ pub fn canonicalize_control_id(raw: &str) -> String {
             normalized.push('_');
         }
     }
-    if normalized.is_empty() || (!normalized.starts_with(|c: char| c.is_ascii_alphabetic() || c == '_')) {
+    if normalized.is_empty()
+        || (!normalized.starts_with(|c: char| c.is_ascii_alphabetic() || c == '_'))
+    {
         normalized = format!("ctrl_{}", normalized);
     }
     normalized
@@ -376,9 +423,18 @@ pub fn reconstruct_original_control_id(canonical: &str, props: &[Property]) -> S
 
 pub fn synthesize_compliance_bundle(inputs: &[SynthesisInput]) -> SynthesizedComplianceBundle {
     let now = Utc::now();
-    let ap_uuid = Uuid::new_v5(&PRIME_OSCAL_NAMESPACE, b"baseline:assessment-plan:prime-default");
-    let ar_uuid = Uuid::new_v5(&PRIME_OSCAL_NAMESPACE, format!("ar:{}", now.timestamp()).as_bytes());
-    let poam_uuid = Uuid::new_v5(&PRIME_OSCAL_NAMESPACE, format!("poam:{}", now.timestamp()).as_bytes());
+    let ap_uuid = Uuid::new_v5(
+        &PRIME_OSCAL_NAMESPACE,
+        b"baseline:assessment-plan:prime-default",
+    );
+    let ar_uuid = Uuid::new_v5(
+        &PRIME_OSCAL_NAMESPACE,
+        format!("ar:{}", now.timestamp()).as_bytes(),
+    );
+    let poam_uuid = Uuid::new_v5(
+        &PRIME_OSCAL_NAMESPACE,
+        format!("poam:{}", now.timestamp()).as_bytes(),
+    );
 
     let mut observations = Vec::new();
     let mut findings = Vec::new();
@@ -495,8 +551,14 @@ pub fn synthesize_compliance_bundle(inputs: &[SynthesisInput]) -> SynthesizedCom
                 target_symbol: input.target_symbol.clone(),
                 required_tier: input.required_tier.to_string(),
                 achieved_tier: input.achieved_tier.to_string(),
-                suppression_reason: input.failure_reason.clone().unwrap_or_else(|| "Suppressed by policy".to_string()),
-                raw_telemetry: Some(format!("Kani: {}, Lean sorry: {}", input.kani_passed, input.lean_sorry_detected)),
+                suppression_reason: input
+                    .failure_reason
+                    .clone()
+                    .unwrap_or_else(|| "Suppressed by policy".to_string()),
+                raw_telemetry: Some(format!(
+                    "Kani: {}, Lean sorry: {}",
+                    input.kani_passed, input.lean_sorry_detected
+                )),
             });
             continue;
         }
@@ -671,7 +733,11 @@ pub fn synthesize_compliance_bundle(inputs: &[SynthesisInput]) -> SynthesizedCom
     let tier_cov = tier_satisfied_count as f64 / total;
     let waiver_cov = (tier_satisfied_count + risk_accepted_count) as f64 / total;
 
-    let has_unresolved_defects = poam_items.iter().any(|p| p.props.iter().any(|pr| pr.name == "status" && pr.value == "open"));
+    let has_unresolved_defects = poam_items.iter().any(|p| {
+        p.props
+            .iter()
+            .any(|pr| pr.name == "status" && pr.value == "open")
+    });
     let gate_status = if !has_unresolved_defects && tier_cov >= 1.0 {
         "passed"
     } else if !has_unresolved_defects && risk_accepted_count > 0 {
@@ -758,7 +824,10 @@ pub fn synthesize_compliance_bundle(inputs: &[SynthesisInput]) -> SynthesizedCom
         None
     } else {
         Some(SuppressedFindingsDocument {
-            uuid: Uuid::new_v5(&PRIME_OSCAL_NAMESPACE, format!("suppressed:{}", now.timestamp()).as_bytes()),
+            uuid: Uuid::new_v5(
+                &PRIME_OSCAL_NAMESPACE,
+                format!("suppressed:{}", now.timestamp()).as_bytes(),
+            ),
             metadata: SuppressedFindingsMetadata {
                 title: "PRIME Suppressed Security Findings Report".to_string(),
                 published: now,
@@ -838,7 +907,9 @@ mod tests {
                 canonical
             );
             assert!(
-                canonical.chars().all(|c| c.is_ascii_alphanumeric() || c == '.' || c == '-' || c == '_'),
+                canonical
+                    .chars()
+                    .all(|c| c.is_ascii_alphanumeric() || c == '.' || c == '-' || c == '_'),
                 "Token '{}' contains invalid NCName characters",
                 canonical
             );
@@ -853,15 +924,30 @@ mod tests {
         assert_eq!(tier1, EvidenceTier::FormalKernel);
 
         // 2. Package cannot lower below floor (floor wins)
-        let tier2 = resolve_required_tier("CM-7", Some(EvidenceTier::StaticCheck), EvidenceTier::Test, None);
+        let tier2 = resolve_required_tier(
+            "CM-7",
+            Some(EvidenceTier::StaticCheck),
+            EvidenceTier::Test,
+            None,
+        );
         assert_eq!(tier2, EvidenceTier::Test);
 
         // 3. Package can raise above floor
-        let tier3 = resolve_required_tier("AU-3", Some(EvidenceTier::Symbolic), EvidenceTier::Test, None);
+        let tier3 = resolve_required_tier(
+            "AU-3",
+            Some(EvidenceTier::Symbolic),
+            EvidenceTier::Test,
+            None,
+        );
         assert_eq!(tier3, EvidenceTier::Symbolic);
 
         // 4. CLI override takes highest precedence
-        let tier4 = resolve_required_tier("CM-7", Some(EvidenceTier::StaticCheck), EvidenceTier::Test, Some(EvidenceTier::FormalKernel));
+        let tier4 = resolve_required_tier(
+            "CM-7",
+            Some(EvidenceTier::StaticCheck),
+            EvidenceTier::Test,
+            Some(EvidenceTier::FormalKernel),
+        );
         assert_eq!(tier4, EvidenceTier::FormalKernel);
     }
 
@@ -910,12 +996,27 @@ mod tests {
         ];
 
         let bundle = synthesize_compliance_bundle(&inputs);
-        assert!(bundle.validate().is_ok(), "Synthesized bundle must pass schema validation");
+        assert!(
+            bundle.validate().is_ok(),
+            "Synthesized bundle must pass schema validation"
+        );
 
         let result = &bundle.assessment_results.assessment_results.results[0];
-        let decl_prop = result.props.iter().find(|p| p.name == "declaration-coverage").expect("decl-coverage present");
-        let tier_prop = result.props.iter().find(|p| p.name == "tier-satisfied-coverage").expect("tier-coverage present");
-        let waiver_prop = result.props.iter().find(|p| p.name == "waiver-adjusted-coverage").expect("waiver-coverage present");
+        let decl_prop = result
+            .props
+            .iter()
+            .find(|p| p.name == "declaration-coverage")
+            .expect("decl-coverage present");
+        let tier_prop = result
+            .props
+            .iter()
+            .find(|p| p.name == "tier-satisfied-coverage")
+            .expect("tier-coverage present");
+        let waiver_prop = result
+            .props
+            .iter()
+            .find(|p| p.name == "waiver-adjusted-coverage")
+            .expect("waiver-coverage present");
 
         assert_eq!(decl_prop.value, "1.0000"); // all 3 passed execution
         assert_eq!(tier_prop.value, "0.3333"); // 1/3 tier satisfied (sym1 only)

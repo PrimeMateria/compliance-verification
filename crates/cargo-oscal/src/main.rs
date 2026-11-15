@@ -1,10 +1,8 @@
 use clap::{Parser, Subcommand};
 use oscal_diagnostics::DiagnosticEmitter;
 use oscal_engine::{
-    canonicalize_control_id, ControlDisposition,
-    DeclarationKind, EvidenceTier, GatePolicyConfig,
-    SynthesisInput, TailoredBaselineReport,
-    CatalogInheritanceReport,
+    canonicalize_control_id, CatalogInheritanceReport, ControlDisposition, DeclarationKind,
+    EvidenceTier, GatePolicyConfig, SynthesisInput, TailoredBaselineReport,
 };
 use sha2::Digest;
 use std::collections::{BTreeMap, BTreeSet};
@@ -46,7 +44,10 @@ enum Commands {
     },
     /// Evaluate Continuous Authorization Gate rules against verification artifacts
     EvaluateGate {
-        #[arg(long, default_value = "artifacts/oscal/staging/assessment-results.json")]
+        #[arg(
+            long,
+            default_value = "artifacts/oscal/staging/assessment-results.json"
+        )]
         ar_path: PathBuf,
         #[arg(long, default_value = "artifacts/oscal/staging/poam.json")]
         poam_path: PathBuf,
@@ -54,7 +55,11 @@ enum Commands {
         fail_on_sorry: bool,
         #[arg(long, default_value = "lean-rust.toml")]
         policy_path: PathBuf,
-        #[arg(long, default_value = "artifacts/oscal/staging/evidence.json", hide = true)]
+        #[arg(
+            long,
+            default_value = "artifacts/oscal/staging/evidence.json",
+            hide = true
+        )]
         evidence_path: PathBuf,
     },
     /// Verify package metadata manifests against schema and evidence rules
@@ -67,7 +72,10 @@ enum Commands {
     /// Generate NIST OSCAL Assessment Plan (SAP) from System Security Plan (SSP)
     #[command(name = "generate-sap", hide = true)]
     GenerateSap {
-        #[arg(long, default_value = "artifacts/oscal/staging/system-security-plan.json")]
+        #[arg(
+            long,
+            default_value = "artifacts/oscal/staging/system-security-plan.json"
+        )]
         ssp_path: PathBuf,
         #[arg(long, default_value = "artifacts/oscal/staging/assessment-plan.json")]
         sap_out: PathBuf,
@@ -91,17 +99,34 @@ enum Commands {
     Monitor {
         #[arg(long, help = "Evidence staleness time-to-live (e.g. '24h', '7d')")]
         audit_ttl: Option<String>,
-        #[arg(long, help = "Fail closed with exit code 2 on E-OSCAL-015 evidence staleness")]
+        #[arg(
+            long,
+            help = "Fail closed with exit code 2 on E-OSCAL-015 evidence staleness"
+        )]
         fail_on_stale: bool,
-        #[arg(long, help = "Fail closed with exit code 2 on E-OSCAL-014 catalog drift", default_value = "true")]
+        #[arg(
+            long,
+            help = "Fail closed with exit code 2 on E-OSCAL-014 catalog drift",
+            default_value = "true"
+        )]
         fail_on_drift: bool,
-        #[arg(long, help = "Fail closed with exit code 2 on E-OSCAL-012 lapsed CSP inheritance attestation", default_value = "true")]
+        #[arg(
+            long,
+            help = "Fail closed with exit code 2 on E-OSCAL-012 lapsed CSP inheritance attestation",
+            default_value = "true"
+        )]
         fail_on_expired_attestation: bool,
         #[arg(long, help = "Fail closed with exit code 2 on overdue POA&M SLA items")]
         fail_on_overdue: bool,
-        #[arg(long, help = "Require poam.json to exist (fail closed with exit code 1 if missing)")]
+        #[arg(
+            long,
+            help = "Require poam.json to exist (fail closed with exit code 1 if missing)"
+        )]
         require_poam: bool,
-        #[arg(long, default_value = "schemas/catalogs/NIST_SP_800-53_rev5_catalog.json")]
+        #[arg(
+            long,
+            default_value = "schemas/catalogs/NIST_SP_800-53_rev5_catalog.json"
+        )]
         catalog: PathBuf,
         #[arg(long, default_value = "artifacts/oscal")]
         artifacts_dir: PathBuf,
@@ -117,7 +142,10 @@ enum Commands {
     ResolveProfile {
         #[arg(long, default_value = "artifacts/oscal/staging/profile.json")]
         profile: PathBuf,
-        #[arg(long, default_value = "schemas/catalogs/NIST_SP_800-53_rev5_catalog.json")]
+        #[arg(
+            long,
+            default_value = "schemas/catalogs/NIST_SP_800-53_rev5_catalog.json"
+        )]
         catalog: PathBuf,
         #[arg(long, default_value = "artifacts/oscal/staging/resolved-catalog.json")]
         out: PathBuf,
@@ -145,7 +173,10 @@ enum Commands {
         policy_path: PathBuf,
         #[arg(long, default_value = "artifacts/oscal")]
         out_dir: PathBuf,
-        #[arg(long, help = "Stage OSCAL package to target/oscal-preview without modifying release directory")]
+        #[arg(
+            long,
+            help = "Stage OSCAL package to target/oscal-preview without modifying release directory"
+        )]
         dry_run: bool,
     },
     /// Assemble portable, offline-verifiable .pcrate bundle (ADR-0017)
@@ -221,7 +252,11 @@ pub struct OscalControlDeclaration {
 
 impl OscalControlDeclaration {
     pub fn resolved_kind(&self) -> Result<DeclarationKind, String> {
-        let raw = self.kind.as_deref().or(self.declaration_kind.as_deref()).unwrap_or("implements");
+        let raw = self
+            .kind
+            .as_deref()
+            .or(self.declaration_kind.as_deref())
+            .unwrap_or("implements");
         match raw.trim().to_lowercase().as_str() {
             "implements" => Ok(DeclarationKind::Implements),
             "requires" => Ok(DeclarationKind::Requires),
@@ -298,7 +333,8 @@ pub fn verify_manifest_declarations_with_clock(
         .map(|p| p.policy.min_default_tier)
         .unwrap_or(EvidenceTier::Test);
 
-    let mut workspace_declarations: BTreeMap<String, Vec<(String, OscalControlDeclaration)>> = BTreeMap::new();
+    let mut workspace_declarations: BTreeMap<String, Vec<(String, OscalControlDeclaration)>> =
+        BTreeMap::new();
 
     // 1. Intra-package checks and workspace indexing
     for pkg in packages {
@@ -307,7 +343,10 @@ pub fn verify_manifest_declarations_with_clock(
             let kind = match ctrl.resolved_kind() {
                 Ok(k) => k,
                 Err(e) => {
-                    errors.push(format!("Package '{}': Control '{}': {}", pkg.name, ctrl.id, e));
+                    errors.push(format!(
+                        "Package '{}': Control '{}': {}",
+                        pkg.name, ctrl.id, e
+                    ));
                     continue;
                 }
             };
@@ -341,7 +380,12 @@ pub fn verify_manifest_declarations_with_clock(
                     }
                 }
 
-                let resolved_tier = oscal_engine::resolve_required_tier(&ctrl.id, declared_tier, workspace_floor, cli_min_tier);
+                let resolved_tier = oscal_engine::resolve_required_tier(
+                    &ctrl.id,
+                    declared_tier,
+                    workspace_floor,
+                    cli_min_tier,
+                );
                 match resolved_tier {
                     EvidenceTier::FormalKernel => {
                         if !ctrl.evidence.iter().any(|e| e == "lake" || e == "lean") {
@@ -360,7 +404,11 @@ pub fn verify_manifest_declarations_with_clock(
                         }
                     }
                     EvidenceTier::Test => {
-                        if !ctrl.evidence.iter().any(|e| e == "cargo_test" || e == "kani" || e == "lake" || e == "lean") {
+                        if !ctrl
+                            .evidence
+                            .iter()
+                            .any(|e| e == "cargo_test" || e == "kani" || e == "lake" || e == "lean")
+                        {
                             errors.push(format!(
                                 "Package '{}': Control '{}' requires 'test' but evidence does not contain 'cargo_test'",
                                 pkg.name, ctrl.id
@@ -368,7 +416,13 @@ pub fn verify_manifest_declarations_with_clock(
                         }
                     }
                     EvidenceTier::StaticCheck => {
-                        if !ctrl.evidence.iter().any(|e| e == "cargo_check" || e == "cargo_test" || e == "kani" || e == "lake" || e == "lean") {
+                        if !ctrl.evidence.iter().any(|e| {
+                            e == "cargo_check"
+                                || e == "cargo_test"
+                                || e == "kani"
+                                || e == "lake"
+                                || e == "lean"
+                        }) {
                             errors.push(format!(
                                 "Package '{}': Control '{}' requires 'static_check' but evidence does not contain 'cargo_check'",
                                 pkg.name, ctrl.id
@@ -378,7 +432,10 @@ pub fn verify_manifest_declarations_with_clock(
                 }
             }
 
-            workspace_declarations.entry(canonical).or_default().push((pkg.name.clone(), ctrl.clone()));
+            workspace_declarations
+                .entry(canonical)
+                .or_default()
+                .push((pkg.name.clone(), ctrl.clone()));
         }
     }
 
@@ -386,7 +443,10 @@ pub fn verify_manifest_declarations_with_clock(
     if let Some(cfg) = policy_config.and_then(|p| p.policy.risk_accepted.as_ref()) {
         if let Some(max_f) = cfg.max_fraction {
             if max_f < 0.0 || max_f > 1.0 {
-                errors.push(format!("policy.risk_accepted.max_fraction ({}) must be between 0.0 and 1.0", max_f));
+                errors.push(format!(
+                    "policy.risk_accepted.max_fraction ({}) must be between 0.0 and 1.0",
+                    max_f
+                ));
             }
         }
     }
@@ -400,7 +460,8 @@ pub fn verify_manifest_declarations_with_clock(
 
     for (canonical, decls) in &workspace_declarations {
         total_declarations += decls.len();
-        let eff_tier = calculate_effective_required_tier(canonical, decls, workspace_floor, cli_min_tier);
+        let eff_tier =
+            calculate_effective_required_tier(canonical, decls, workspace_floor, cli_min_tier);
         effective_tiers.insert(canonical.clone(), eff_tier);
 
         let mut impls = Vec::new();
@@ -426,7 +487,9 @@ pub fn verify_manifest_declarations_with_clock(
                             return false;
                         }
                     }
-                    inh.controls.iter().any(|c| canonicalize_control_id(c) == *canonical)
+                    inh.controls
+                        .iter()
+                        .any(|c| canonicalize_control_id(c) == *canonical)
                 })
             })
             .unwrap_or(false);
@@ -452,7 +515,13 @@ pub fn verify_manifest_declarations_with_clock(
                 if declared_impl_tier < eff_tier {
                     let demanding_consumers: Vec<String> = reqs
                         .iter()
-                        .map(|(p, cd)| format!("'{}' requiring '{}'", p, cd.required_tier.as_deref().unwrap_or("default")))
+                        .map(|(p, cd)| {
+                            format!(
+                                "'{}' requiring '{}'",
+                                p,
+                                cd.required_tier.as_deref().unwrap_or("default")
+                            )
+                        })
                         .collect();
                     errors.push(format!(
                         "[E-OSCAL-011] Consumer tier mismatch: Package '{}' implements control '{}' (canonical '{}') at tier '{}', which is below effective required tier '{}' (demanded by: {})",
@@ -499,19 +568,59 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let cli = Cli::parse_from(args);
 
     match cli.command {
-        Commands::Build { manifest_path, ar_out, poam_out, sap_out, min_tier, policy_path, legacy_ar_compat } => {
-            execute_build(&manifest_path, ar_out.as_deref(), poam_out.as_deref(), sap_out.as_deref(), min_tier.as_deref(), &policy_path, legacy_ar_compat)?;
+        Commands::Build {
+            manifest_path,
+            ar_out,
+            poam_out,
+            sap_out,
+            min_tier,
+            policy_path,
+            legacy_ar_compat,
+        } => {
+            execute_build(
+                &manifest_path,
+                ar_out.as_deref(),
+                poam_out.as_deref(),
+                sap_out.as_deref(),
+                min_tier.as_deref(),
+                &policy_path,
+                legacy_ar_compat,
+            )?;
         }
-        Commands::EvaluateGate { ar_path, poam_path, fail_on_sorry, policy_path, evidence_path } => {
-            evaluate_gate(&ar_path, &poam_path, fail_on_sorry, &policy_path, &evidence_path)?;
+        Commands::EvaluateGate {
+            ar_path,
+            poam_path,
+            fail_on_sorry,
+            policy_path,
+            evidence_path,
+        } => {
+            evaluate_gate(
+                &ar_path,
+                &poam_path,
+                fail_on_sorry,
+                &policy_path,
+                &evidence_path,
+            )?;
         }
-        Commands::VerifyManifests { manifest_path, policy_path } => {
+        Commands::VerifyManifests {
+            manifest_path,
+            policy_path,
+        } => {
             execute_verify_manifests(&manifest_path, &policy_path)?;
         }
-        Commands::GenerateSap { ssp_path, sap_out, policy_path, legacy_ar_compat } => {
+        Commands::GenerateSap {
+            ssp_path,
+            sap_out,
+            policy_path,
+            legacy_ar_compat,
+        } => {
             execute_generate_sap(&ssp_path, &sap_out, &policy_path, legacy_ar_compat)?;
         }
-        Commands::Replay { record, history_dir, ignore_toolchain_mismatch } => {
+        Commands::Replay {
+            record,
+            history_dir,
+            ignore_toolchain_mismatch,
+        } => {
             execute_replay(&record, &history_dir, ignore_toolchain_mismatch)?;
         }
         Commands::Monitor {
@@ -603,7 +712,10 @@ fn execute_assemble_pcrate(
         manifest_path.join("Cargo.toml")
     };
     if !cargo_toml.exists() {
-        eprintln!("\x1b[1;31merror: Cargo.toml not found at {}\x1b[0m", cargo_toml.display());
+        eprintln!(
+            "\x1b[1;31merror: Cargo.toml not found at {}\x1b[0m",
+            cargo_toml.display()
+        );
         std::process::exit(1);
     }
     let artifacts_dir = Path::new("artifacts/oscal");
@@ -622,35 +734,46 @@ fn execute_assemble_pcrate(
         PathBuf::from(format!("target/pcrate/{}.pcrate", crate_name))
     };
 
-    let bundle = oscal_engine::assemble_pcrate(
-        root,
-        &cargo_toml,
-        artifacts_dir,
-        &target_out,
-        None,
-    )?;
-    println!("\x1b[1;32m[PASS] Successfully assembled .pcrate at {}\x1b[0m", bundle.display());
+    let bundle =
+        oscal_engine::assemble_pcrate(root, &cargo_toml, artifacts_dir, &target_out, None)?;
+    println!(
+        "\x1b[1;32m[PASS] Successfully assembled .pcrate at {}\x1b[0m",
+        bundle.display()
+    );
     Ok(())
 }
 
-fn execute_verify_pcrate(
-    pcrate_path: &Path,
-) -> Result<(), Box<dyn std::error::Error>> {
-    println!("\x1b[1;36m==> [cargo-oscal] Verifying .pcrate Hermetically Offline: {}\x1b[0m", pcrate_path.display());
+fn execute_verify_pcrate(pcrate_path: &Path) -> Result<(), Box<dyn std::error::Error>> {
+    println!(
+        "\x1b[1;36m==> [cargo-oscal] Verifying .pcrate Hermetically Offline: {}\x1b[0m",
+        pcrate_path.display()
+    );
     if !pcrate_path.exists() {
-        eprintln!("\x1b[1;31merror: .pcrate bundle does not exist at {}\x1b[0m", pcrate_path.display());
+        eprintln!(
+            "\x1b[1;31merror: .pcrate bundle does not exist at {}\x1b[0m",
+            pcrate_path.display()
+        );
         std::process::exit(1);
     }
     match oscal_engine::verify_pcrate(pcrate_path, None) {
         Ok(report) => {
             println!("\x1b[1;32m[PASS] Offline hermetic verification succeeded!\x1b[0m");
-            println!("  * Crate:             {} v{}", report.crate_name, report.crate_version);
+            println!(
+                "  * Crate:             {} v{}",
+                report.crate_name, report.crate_version
+            );
             println!("  * Gate Disposition:  {}", report.gate_disposition);
             println!("  * Release Status:    {}", report.release_acceptance);
             println!("  * Achieved Tier:     {}", report.achieved_tier);
-            println!("  * Coverage:          {:.1}%", report.effective_coverage * 100.0);
+            println!(
+                "  * Coverage:          {:.1}%",
+                report.effective_coverage * 100.0
+            );
             println!("  * Open Boundaries:   {:?}", report.open_boundaries);
-            println!("  * Verified Artifacts: {}", report.verified_artifacts_count);
+            println!(
+                "  * Verified Artifacts: {}",
+                report.verified_artifacts_count
+            );
             Ok(())
         }
         Err(e) => {
@@ -666,25 +789,46 @@ fn execute_inspect_pcrate(
     json_mode: bool,
 ) -> Result<(), Box<dyn std::error::Error>> {
     if !pcrate_path.exists() {
-        eprintln!("\x1b[1;31merror: .pcrate bundle does not exist at {}\x1b[0m", pcrate_path.display());
+        eprintln!(
+            "\x1b[1;31merror: .pcrate bundle does not exist at {}\x1b[0m",
+            pcrate_path.display()
+        );
         std::process::exit(1);
     }
     let report = oscal_engine::inspect_pcrate(pcrate_path)?;
     if json_mode {
         println!("{}", serde_json::to_string_pretty(&report)?);
     } else {
-        println!("\x1b[1;36m==> [cargo-oscal] .pcrate Bundle Inspection: {}\x1b[0m", pcrate_path.display());
+        println!(
+            "\x1b[1;36m==> [cargo-oscal] .pcrate Bundle Inspection: {}\x1b[0m",
+            pcrate_path.display()
+        );
         println!("  * Manifest Version:   {}", report.manifest_version);
         println!("  * Crate Name:         {}", report.crate_name);
         println!("  * Crate Version:      {}", report.crate_version);
         println!("  * Created At:         {}", report.created_at);
-        println!("  * Producer:           {} v{} (policy sha: {})", report.producer.system, report.producer.version, &report.producer.gate_policy_sha256[..16.min(report.producer.gate_policy_sha256.len())]);
+        println!(
+            "  * Producer:           {} v{} (policy sha: {})",
+            report.producer.system,
+            report.producer.version,
+            &report.producer.gate_policy_sha256[..16.min(report.producer.gate_policy_sha256.len())]
+        );
         println!("  * Gate Decision:      {}", report.gate_decision);
         println!("  * Release Acceptance: {}", report.release_acceptance);
-        println!("  * Effective Coverage: {:.1}% (required: {:.1}%)", report.effective_coverage * 100.0, report.min_coverage_required * 100.0);
+        println!(
+            "  * Effective Coverage: {:.1}% (required: {:.1}%)",
+            report.effective_coverage * 100.0,
+            report.min_coverage_required * 100.0
+        );
         println!("  * Boundaries:         {:?}", report.boundaries);
-        println!("  * Narrative Disclosures: {}", report.narrative_disclosures_count);
-        println!("  * Falsifiability Witnesses: {}", report.falsifiability_witness_count);
+        println!(
+            "  * Narrative Disclosures: {}",
+            report.narrative_disclosures_count
+        );
+        println!(
+            "  * Falsifiability Witnesses: {}",
+            report.falsifiability_witness_count
+        );
         println!("  * Bundled Artifacts ({}):", report.artifacts_count);
         for (art, hash) in &report.artifacts {
             println!("    - {:<40} (sha: {})", art, &hash[..16.min(hash.len())]);
@@ -699,7 +843,9 @@ fn execute_resolve_profile(
     out_path: &Path,
     policy_path: &Path,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    println!("\x1b[1;36m==> [cargo-oscal] Resolving OSCAL Profile into Concrete Catalog Baseline\x1b[0m");
+    println!(
+        "\x1b[1;36m==> [cargo-oscal] Resolving OSCAL Profile into Concrete Catalog Baseline\x1b[0m"
+    );
     let eff_now = oscal_engine::tailoring::get_effective_clock(None);
 
     let effective_profile_path = if profile_path.exists() {
@@ -713,7 +859,10 @@ fn execute_resolve_profile(
                     catalog_path,
                     Some(eff_now),
                 );
-                let synth_path = out_path.parent().unwrap_or(Path::new(".")).join("profile.json");
+                let synth_path = out_path
+                    .parent()
+                    .unwrap_or(Path::new("."))
+                    .join("profile.json");
                 if let Some(p) = synth_path.parent() {
                     fs::create_dir_all(p)?;
                 }
@@ -742,7 +891,10 @@ fn execute_resolve_profile(
         fs::create_dir_all(parent)?;
     }
     fs::write(out_path, serde_json::to_string_pretty(&resolved)?)?;
-    println!("\x1b[1;32m[PASS] Resolved catalog written to '{}'\x1b[0m", out_path.display());
+    println!(
+        "\x1b[1;32m[PASS] Resolved catalog written to '{}'\x1b[0m",
+        out_path.display()
+    );
     Ok(())
 }
 
@@ -750,17 +902,26 @@ fn execute_verify_evidence(
     evidence_path: &Path,
     policy_path: &Path,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    println!("\x1b[1;36m==> [cargo-oscal] Verifying Evidence Document: {}\x1b[0m", evidence_path.display());
+    println!(
+        "\x1b[1;36m==> [cargo-oscal] Verifying Evidence Document: {}\x1b[0m",
+        evidence_path.display()
+    );
 
     let effective_path = if evidence_path.exists() {
         evidence_path.to_path_buf()
     } else {
         let staging_candidate = PathBuf::from("artifacts/oscal/staging/evidence.json");
         if staging_candidate.exists() {
-            println!("  [FALLBACK] Using staging evidence document: {}", staging_candidate.display());
+            println!(
+                "  [FALLBACK] Using staging evidence document: {}",
+                staging_candidate.display()
+            );
             staging_candidate
         } else {
-            eprintln!("\x1b[1;31merror: Evidence document not found at {} or staging\x1b[0m", evidence_path.display());
+            eprintln!(
+                "\x1b[1;31merror: Evidence document not found at {} or staging\x1b[0m",
+                evidence_path.display()
+            );
             std::process::exit(1);
         }
     };
@@ -770,7 +931,10 @@ fn execute_verify_evidence(
         .map_err(|e| format!("Failed to parse evidence JSON: {}", e))?;
 
     if let Err(errs) = oscal_engine::validate_evidence(&val) {
-        eprintln!("\x1b[1;31merror: Evidence document failed schema validation ({} errors):\x1b[0m", errs.len());
+        eprintln!(
+            "\x1b[1;31merror: Evidence document failed schema validation ({} errors):\x1b[0m",
+            errs.len()
+        );
         for err in &errs {
             eprintln!("  * \x1b[1;31m{}\x1b[0m", err);
         }
@@ -791,15 +955,39 @@ fn execute_verify_evidence(
     println!("  * Version:             {}", evidence_doc.version);
     println!("  * Timestamp:           {}", evidence_doc.build.timestamp);
     println!("  * Git SHA:             {}", evidence_doc.build.git_sha);
-    println!("  * Total Declarations:  {}", evidence_doc.summary.total_declarations);
-    println!("  * Unique Controls:     {}", evidence_doc.summary.unique_controls);
-    println!("  * Tier Satisfied:      {}", evidence_doc.summary.tier_satisfied);
-    println!("  * Risk Accepted:       {}", evidence_doc.summary.risk_accepted);
-    println!("  * Unsatisfied:         {}", evidence_doc.summary.unsatisfied);
-    println!("  * Coverage:            {:.1}% [Min Required: {:.1}%]",
-        evidence_doc.coverage.percentage * 100.0, evidence_doc.coverage.min_required * 100.0);
-    println!("  * Falsifiability:      {} witness record(s)", evidence_doc.falsifiability.len());
-    println!("  * CSP Inheritance:     {} active source(s)", evidence_doc.inheritance.len());
+    println!(
+        "  * Total Declarations:  {}",
+        evidence_doc.summary.total_declarations
+    );
+    println!(
+        "  * Unique Controls:     {}",
+        evidence_doc.summary.unique_controls
+    );
+    println!(
+        "  * Tier Satisfied:      {}",
+        evidence_doc.summary.tier_satisfied
+    );
+    println!(
+        "  * Risk Accepted:       {}",
+        evidence_doc.summary.risk_accepted
+    );
+    println!(
+        "  * Unsatisfied:         {}",
+        evidence_doc.summary.unsatisfied
+    );
+    println!(
+        "  * Coverage:            {:.1}% [Min Required: {:.1}%]",
+        evidence_doc.coverage.percentage * 100.0,
+        evidence_doc.coverage.min_required * 100.0
+    );
+    println!(
+        "  * Falsifiability:      {} witness record(s)",
+        evidence_doc.falsifiability.len()
+    );
+    println!(
+        "  * CSP Inheritance:     {} active source(s)",
+        evidence_doc.inheritance.len()
+    );
 
     let outcome = evaluate_evidence_gate_rules(&evidence_doc, policy_config.as_ref(), true);
     match outcome {
@@ -808,7 +996,10 @@ fn execute_verify_evidence(
             Ok(())
         }
         Ok(out) => {
-            eprintln!("\x1b[1;31m[GATE REJECTED] Evidence gate failed with {} violation(s):\x1b[0m", out.violations.len());
+            eprintln!(
+                "\x1b[1;31m[GATE REJECTED] Evidence gate failed with {} violation(s):\x1b[0m",
+                out.violations.len()
+            );
             for v in &out.violations {
                 eprintln!("  * \x1b[1;33m{}\x1b[0m", v);
             }
@@ -866,7 +1057,8 @@ fn execute_monitor_cli(
 
     let effective_fail_on_stale = fail_on_stale || config_fail_on_stale;
     let effective_fail_on_drift = fail_on_drift && config_fail_on_drift;
-    let effective_fail_on_expired_attestation = fail_on_expired_attestation && config_fail_on_expired;
+    let effective_fail_on_expired_attestation =
+        fail_on_expired_attestation && config_fail_on_expired;
     let effective_fail_on_overdue = fail_on_overdue || config_fail_on_overdue;
     let effective_require_poam = require_poam || config_require_poam;
 
@@ -877,7 +1069,12 @@ fn execute_monitor_cli(
         (dt, "cli_flag".to_string())
     } else if let Ok(env_now) = std::env::var("OSCAL_NOW") {
         let dt = chrono::DateTime::parse_from_rfc3339(&env_now)
-            .map_err(|e| format!("Invalid OSCAL_NOW environment variable '{}': {}", env_now, e))?
+            .map_err(|e| {
+                format!(
+                    "Invalid OSCAL_NOW environment variable '{}': {}",
+                    env_now, e
+                )
+            })?
             .with_timezone(&chrono::Utc);
         (dt, "env_override".to_string())
     } else {
@@ -978,8 +1175,8 @@ fn execute_generate_sap(
     };
 
     let ssp_str = fs::read_to_string(&effective_ssp_path)?;
-    let ssp_val: serde_json::Value = serde_json::from_str(&ssp_str)
-        .map_err(|e| format!("Failed to parse SSP JSON: {}", e))?;
+    let ssp_val: serde_json::Value =
+        serde_json::from_str(&ssp_str).map_err(|e| format!("Failed to parse SSP JSON: {}", e))?;
 
     let policy_config = if policy_path.exists() {
         let s = fs::read_to_string(policy_path)?;
@@ -1002,7 +1199,10 @@ fn execute_generate_sap(
             }
             let sap_json = serde_json::to_string_pretty(&sap_val)?;
             fs::write(sap_out, sap_json)?;
-            println!("Emitted OSCAL Assessment Plan (Staging): {}", sap_out.display());
+            println!(
+                "Emitted OSCAL Assessment Plan (Staging): {}",
+                sap_out.display()
+            );
             Ok(())
         }
         Err(errs) => {
@@ -1035,16 +1235,31 @@ pub fn synthesize_staging_evidence(
 
     let git_sha = oscal_engine::history::resolve_git_sha(Path::new("."));
 
-    let coverage_basis_str = match policy_config.as_ref().map(|p| p.policy.coverage_basis).unwrap_or(oscal_engine::gate_policy::GatePolicyConfigPolicyCoverageBasis::DeclaredControls) {
-        oscal_engine::gate_policy::GatePolicyConfigPolicyCoverageBasis::DeclaredControls => "declared_controls",
-        oscal_engine::gate_policy::GatePolicyConfigPolicyCoverageBasis::UniqueControls => "unique_controls",
-        oscal_engine::gate_policy::GatePolicyConfigPolicyCoverageBasis::BaselineCatalog => "baseline_catalog",
+    let coverage_basis_str = match policy_config
+        .as_ref()
+        .map(|p| p.policy.coverage_basis)
+        .unwrap_or(oscal_engine::gate_policy::GatePolicyConfigPolicyCoverageBasis::DeclaredControls)
+    {
+        oscal_engine::gate_policy::GatePolicyConfigPolicyCoverageBasis::DeclaredControls => {
+            "declared_controls"
+        }
+        oscal_engine::gate_policy::GatePolicyConfigPolicyCoverageBasis::UniqueControls => {
+            "unique_controls"
+        }
+        oscal_engine::gate_policy::GatePolicyConfigPolicyCoverageBasis::BaselineCatalog => {
+            "baseline_catalog"
+        }
     };
 
-    let min_control_coverage = policy_config.as_ref().map(|p| p.policy.min_control_coverage).unwrap_or(1.0);
+    let min_control_coverage = policy_config
+        .as_ref()
+        .map(|p| p.policy.min_control_coverage)
+        .unwrap_or(1.0);
     let waiver_mode_str = match waiver_mode {
         oscal_engine::gate_policy::GatePolicyConfigPolicyWaiverMode::Downgrade => "downgrade",
-        oscal_engine::gate_policy::GatePolicyConfigPolicyWaiverMode::RiskAccepted => "risk_accepted",
+        oscal_engine::gate_policy::GatePolicyConfigPolicyWaiverMode::RiskAccepted => {
+            "risk_accepted"
+        }
         oscal_engine::gate_policy::GatePolicyConfigPolicyWaiverMode::Suppress => "downgrade",
     };
 
@@ -1055,15 +1270,24 @@ pub fn synthesize_staging_evidence(
         EvidenceTier::StaticCheck => "static_check",
     };
 
-    let risk_accepted_max_count = policy_config.as_ref().and_then(|p| p.policy.risk_accepted.as_ref()).and_then(|r| r.max_count);
-    let risk_accepted_max_fraction = policy_config.as_ref().and_then(|p| p.policy.risk_accepted.as_ref()).and_then(|r| r.max_fraction);
+    let risk_accepted_max_count = policy_config
+        .as_ref()
+        .and_then(|p| p.policy.risk_accepted.as_ref())
+        .and_then(|r| r.max_count);
+    let risk_accepted_max_fraction = policy_config
+        .as_ref()
+        .and_then(|p| p.policy.risk_accepted.as_ref())
+        .and_then(|r| r.max_fraction);
 
     let mut components = Vec::new();
     if !declared_packages.is_empty() {
         for (name, _, oscal_meta) in declared_packages {
             components.push(oscal_engine::evidence::EvidenceComponent {
                 id: format!("workspace-{}", name),
-                title: oscal_meta.component_title.clone().unwrap_or_else(|| name.clone()),
+                title: oscal_meta
+                    .component_title
+                    .clone()
+                    .unwrap_or_else(|| name.clone()),
                 source_type: "workspace".to_string(),
                 attestation_expiry: None,
                 is_active: None,
@@ -1113,7 +1337,10 @@ pub fn synthesize_staging_evidence(
             EvidenceTier::StaticCheck => "static_check",
         };
 
-        let tier_sat = s.achieved_tier >= s.required_tier && !s.lean_sorry_detected && s.kani_passed && s.failure_reason.is_none();
+        let tier_sat = s.achieved_tier >= s.required_tier
+            && !s.lean_sorry_detected
+            && s.kani_passed
+            && s.failure_reason.is_none();
         let adjudicated_state = if s.is_waived {
             "risk_accepted".to_string()
         } else if tier_sat {
@@ -1169,7 +1396,11 @@ pub fn synthesize_staging_evidence(
                 tool: "kani".to_string(),
                 passed: s.kani_passed,
                 sorry_free: None,
-                reason: if s.kani_passed { None } else { s.failure_reason.clone() },
+                reason: if s.kani_passed {
+                    None
+                } else {
+                    s.failure_reason.clone()
+                },
                 output_file: Some(kani_rel_path),
                 sha256: Some(kani_sha256),
             });
@@ -1191,7 +1422,10 @@ pub fn synthesize_staging_evidence(
             let att_path = attestations_dir.join(format!("{}.lean-attestation.json", canonical_id));
             let att_json = serde_json::to_string_pretty(&att)?;
             fs::write(&att_path, &att_json)?;
-            let _ = fs::write(root_att_dir.join(format!("{}.lean-attestation.json", canonical_id)), &att_json);
+            let _ = fs::write(
+                root_att_dir.join(format!("{}.lean-attestation.json", canonical_id)),
+                &att_json,
+            );
 
             let mut h = sha2::Sha256::new();
             h.update(att_json.as_bytes());
@@ -1199,7 +1433,10 @@ pub fn synthesize_staging_evidence(
 
             falsifiability.push(oscal_engine::evidence::EvidenceFalsifiability {
                 control_id: canonical_id.clone(),
-                witness_file: format!("evidence/attestations/{}.lean-attestation.json", canonical_id),
+                witness_file: format!(
+                    "evidence/attestations/{}.lean-attestation.json",
+                    canonical_id
+                ),
                 witness_sha256: att_sha256,
                 verified: !s.lean_sorry_detected && s.kani_passed,
             });
@@ -1285,7 +1522,10 @@ pub fn synthesize_staging_evidence(
                 key: src_id.clone(),
                 source_id: src_id.clone(),
                 controls: src_data.controls.iter().cloned().collect(),
-                attestation_sha256: format!("{:x}", sha2::Sha256::digest(src_data.leveraged_authorization_uuid.as_bytes())),
+                attestation_sha256: format!(
+                    "{:x}",
+                    sha2::Sha256::digest(src_data.leveraged_authorization_uuid.as_bytes())
+                ),
                 attestation_expiry: src_data.attestation_expiry.clone(),
                 is_active: src_data.is_active,
             });
@@ -1387,7 +1627,9 @@ pub fn synthesize_staging_evidence(
                     ast_a_hash: hash_a,
                     ast_b_file: file_b,
                     ast_b_hash: hash_b,
-                    shared_evidence_hash: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855".to_string(),
+                    shared_evidence_hash:
+                        "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+                            .to_string(),
                     verified: true,
                 });
             }
@@ -1436,13 +1678,16 @@ fn execute_build(
         None
     };
 
-    let workspace_floor = policy_config.as_ref()
+    let workspace_floor = policy_config
+        .as_ref()
         .map(|p| p.policy.min_default_tier)
         .unwrap_or(EvidenceTier::Test);
-    let waived_controls = policy_config.as_ref()
+    let waived_controls = policy_config
+        .as_ref()
         .map(|p| p.policy.waived_controls.clone())
         .unwrap_or_default();
-    let waiver_mode = policy_config.as_ref()
+    let waiver_mode = policy_config
+        .as_ref()
         .map(|p| p.policy.waiver_mode)
         .unwrap_or(oscal_engine::gate_policy::GatePolicyConfigPolicyWaiverMode::Downgrade);
     let cli_min_tier = cli_min_tier_str.map(parse_tier);
@@ -1466,7 +1711,13 @@ fn execute_build(
 
     // Discover declared packages and [package.metadata.oscal] via cargo metadata
     let metadata_out = Command::new("cargo")
-        .args(["metadata", "--format-version", "1", "--no-deps", "--manifest-path"])
+        .args([
+            "metadata",
+            "--format-version",
+            "1",
+            "--no-deps",
+            "--manifest-path",
+        ])
         .arg(&cargo_toml_path)
         .output()?;
 
@@ -1502,7 +1753,11 @@ fn execute_build(
     }
 
     let workspace_index = if !pkg_metadata_infos.is_empty() {
-        match verify_manifest_declarations(&pkg_metadata_infos, policy_config.as_ref(), cli_min_tier) {
+        match verify_manifest_declarations(
+            &pkg_metadata_infos,
+            policy_config.as_ref(),
+            cli_min_tier,
+        ) {
             Ok(report) => Some(report),
             Err(errors) => {
                 eprintln!("\x1b[1;31m[E-OSCAL-008] Workspace OSCAL Manifest Validation Failed with {} error(s):\x1b[0m", errors.len());
@@ -1526,7 +1781,11 @@ fn execute_build(
     fs::create_dir_all(staging_dir)?;
     let eff_now = oscal_engine::tailoring::get_effective_clock(None);
 
-    let profile_to_resolve = if let Some(p_str) = policy_config.as_ref().and_then(|p| p.catalog.as_ref()).and_then(|c| c.profile.as_deref()) {
+    let profile_to_resolve = if let Some(p_str) = policy_config
+        .as_ref()
+        .and_then(|p| p.catalog.as_ref())
+        .and_then(|c| c.profile.as_deref())
+    {
         let p_path = Path::new(p_str);
         if p_path.exists() {
             p_path.to_path_buf()
@@ -1542,7 +1801,11 @@ fn execute_build(
         }
     } else if staging_profile.exists() {
         staging_profile.to_path_buf()
-    } else if let Some(tailoring_cfg) = policy_config.as_ref().and_then(|p| p.catalog.as_ref()).and_then(|c| c.tailoring.as_ref()) {
+    } else if let Some(tailoring_cfg) = policy_config
+        .as_ref()
+        .and_then(|p| p.catalog.as_ref())
+        .and_then(|c| c.tailoring.as_ref())
+    {
         // [catalog.tailoring] deprecated compatibility shim
         let synth_profile = oscal_engine::tailoring::synthesize_profile_from_tailoring(
             tailoring_cfg,
@@ -1552,8 +1815,14 @@ fn execute_build(
         if let Some(parent) = staging_profile.parent() {
             fs::create_dir_all(parent)?;
         }
-        fs::write(&staging_profile, serde_json::to_string_pretty(&synth_profile)?)?;
-        println!("Synthesized Profile from deprecated [catalog.tailoring]: {}", staging_profile.display());
+        fs::write(
+            &staging_profile,
+            serde_json::to_string_pretty(&synth_profile)?,
+        )?;
+        println!(
+            "Synthesized Profile from deprecated [catalog.tailoring]: {}",
+            staging_profile.display()
+        );
         staging_profile.to_path_buf()
     } else {
         // Default: synthesize baseline profile from workspace declared controls
@@ -1572,7 +1841,10 @@ fn execute_build(
         if let Some(parent) = staging_profile.parent() {
             fs::create_dir_all(parent)?;
         }
-        fs::write(&staging_profile, serde_json::to_string_pretty(&synth_profile)?)?;
+        fs::write(
+            &staging_profile,
+            serde_json::to_string_pretty(&synth_profile)?,
+        )?;
         staging_profile.to_path_buf()
     };
 
@@ -1583,15 +1855,23 @@ fn execute_build(
         Some(eff_now),
     )?;
     oscal_engine::assert_resolved_catalog_not_skeleton(&resolved_catalog)?;
-    fs::write(&resolved_catalog_staging, serde_json::to_string_pretty(&resolved_catalog)?)?;
-    println!("Emitted OSCAL Resolved Catalog (Staging): {}", resolved_catalog_staging.display());
+    fs::write(
+        &resolved_catalog_staging,
+        serde_json::to_string_pretty(&resolved_catalog)?,
+    )?;
+    println!(
+        "Emitted OSCAL Resolved Catalog (Staging): {}",
+        resolved_catalog_staging.display()
+    );
 
     let mut synthesis_inputs = Vec::new();
     let emitter = DiagnosticEmitter::new();
 
     if declared_packages.is_empty() {
         // Fallback for standalone crate or fixture without package.metadata.oscal
-        println!("Note: No [package.metadata.oscal] found; running single-crate fallback verification");
+        println!(
+            "Note: No [package.metadata.oscal] found; running single-crate fallback verification"
+        );
         let (kani_passed, lean_sorry, reason) = verify_single_target(manifest_path, &emitter)?;
         let achieved = if !lean_sorry && kani_passed {
             EvidenceTier::FormalKernel
@@ -1601,7 +1881,9 @@ fn execute_build(
             EvidenceTier::StaticCheck
         };
         let canonical_id = canonicalize_control_id("SI-7(1)");
-        let is_waived = waived_controls.iter().any(|w| w == "SI-7(1)" || w == &canonical_id);
+        let is_waived = waived_controls
+            .iter()
+            .any(|w| w == "SI-7(1)" || w == &canonical_id);
         synthesis_inputs.push(SynthesisInput {
             title: "Verification Telemetry".to_string(),
             component_title: "prime-target".to_string(),
@@ -1616,14 +1898,26 @@ fn execute_build(
             waiver_mode,
         });
     } else {
-        println!("\x1b[1;32m[DISCOVERY] Found {} package(s) declaring [package.metadata.oscal]:\x1b[0m", declared_packages.len());
+        println!(
+            "\x1b[1;32m[DISCOVERY] Found {} package(s) declaring [package.metadata.oscal]:\x1b[0m",
+            declared_packages.len()
+        );
         for (name, pkg_manifest, oscal_meta) in &declared_packages {
-            println!("  * Package '{}': {} control(s) declared", name, oscal_meta.controls.len());
+            println!(
+                "  * Package '{}': {} control(s) declared",
+                name,
+                oscal_meta.controls.len()
+            );
 
             // Collect unique evidence sources required by this package's implemented controls
-            let implemented_controls: Vec<_> = oscal_meta.controls.iter().filter(|c| {
-                c.resolved_kind().unwrap_or(DeclarationKind::Implements) == DeclarationKind::Implements
-            }).collect();
+            let implemented_controls: Vec<_> = oscal_meta
+                .controls
+                .iter()
+                .filter(|c| {
+                    c.resolved_kind().unwrap_or(DeclarationKind::Implements)
+                        == DeclarationKind::Implements
+                })
+                .collect();
 
             let mut package_evidence_sources = BTreeSet::new();
             for ctrl in &implemented_controls {
@@ -1638,21 +1932,37 @@ fn execute_build(
             let mut pkg_tests_passed = true;
 
             if package_evidence_sources.contains("kani") {
-                println!("\x1b[1;36m==> Phase 2: Kani Symbolic Model Checking for '{}'\x1b[0m", name);
+                println!(
+                    "\x1b[1;36m==> Phase 2: Kani Symbolic Model Checking for '{}'\x1b[0m",
+                    name
+                );
                 let kani_ctrl_ids: Vec<String> = implemented_controls
                     .iter()
-                    .filter(|c| c.evidence.iter().any(|e| e == "kani") || c.required_tier.as_deref() == Some("symbolic") || c.required_tier.as_deref() == Some("formal_kernel"))
+                    .filter(|c| {
+                        c.evidence.iter().any(|e| e == "kani")
+                            || c.required_tier.as_deref() == Some("symbolic")
+                            || c.required_tier.as_deref() == Some("formal_kernel")
+                    })
                     .map(|c| c.id.clone())
                     .collect();
-                let (k_pass, k_reason) = run_kani(pkg_manifest, &staging_dir.join("attestations"), &kani_ctrl_ids)?;
+                let (k_pass, k_reason) = run_kani(
+                    pkg_manifest,
+                    &staging_dir.join("attestations"),
+                    &kani_ctrl_ids,
+                )?;
                 pkg_kani_passed = k_pass;
                 if !k_pass && pkg_reason.is_none() {
                     pkg_reason = k_reason;
                 }
             }
 
-            if package_evidence_sources.contains("lake") || package_evidence_sources.contains("lean") {
-                println!("\x1b[1;36m==> Phase 3: Lean 4 Axiom & Kernel Verification for '{}'\x1b[0m", name);
+            if package_evidence_sources.contains("lake")
+                || package_evidence_sources.contains("lean")
+            {
+                println!(
+                    "\x1b[1;36m==> Phase 3: Lean 4 Axiom & Kernel Verification for '{}'\x1b[0m",
+                    name
+                );
                 let (l_sorry, l_reason) = run_lean(pkg_manifest, &emitter)?;
                 pkg_lean_sorry = l_sorry;
                 pkg_reason = l_reason;
@@ -1683,9 +1993,16 @@ fn execute_build(
                     .and_then(|idx| idx.effective_tiers.get(&canonical_id).copied())
                     .unwrap_or_else(|| {
                         let declared_tier = ctrl.required_tier.as_deref().map(parse_tier);
-                        oscal_engine::resolve_required_tier(&ctrl.id, declared_tier, workspace_floor, cli_min_tier)
+                        oscal_engine::resolve_required_tier(
+                            &ctrl.id,
+                            declared_tier,
+                            workspace_floor,
+                            cli_min_tier,
+                        )
                     });
-                let is_waived = waived_controls.iter().any(|w| w == &ctrl.id || w == &canonical_id);
+                let is_waived = waived_controls
+                    .iter()
+                    .any(|w| w == &ctrl.id || w == &canonical_id);
 
                 // Compute achieved tier strictly per control based on its verified evidence sources
                 let achieved = if ctrl.evidence.iter().any(|s| s == "lake" || s == "lean") {
@@ -1721,12 +2038,19 @@ fn execute_build(
                     ctrl.id,
                     req_tier,
                     achieved,
-                    if achieved >= req_tier { "\x1b[1;32mTIER SATISFIED\x1b[0m" } else { "\x1b[1;31mTIER MISMATCH\x1b[0m" }
+                    if achieved >= req_tier {
+                        "\x1b[1;32mTIER SATISFIED\x1b[0m"
+                    } else {
+                        "\x1b[1;31mTIER MISMATCH\x1b[0m"
+                    }
                 );
 
                 synthesis_inputs.push(SynthesisInput {
                     title: format!("Verification Telemetry for {}", ctrl.id),
-                    component_title: oscal_meta.component_title.clone().unwrap_or_else(|| name.clone()),
+                    component_title: oscal_meta
+                        .component_title
+                        .clone()
+                        .unwrap_or_else(|| name.clone()),
                     control_id: ctrl.id.clone(),
                     target_symbol: format!("{}_core", name.replace('-', "_")),
                     required_tier: req_tier,
@@ -1743,40 +2067,62 @@ fn execute_build(
 
     let catalog_controls = oscal_engine::tailoring::get_pinned_catalog_control_ids();
 
-    let inheritance_report = if let Some(cat) = policy_config.as_ref().and_then(|p| p.catalog.as_ref()) {
-        if !cat.inheritance.is_empty() {
-            match oscal_engine::tailoring::evaluate_catalog_inheritance(&cat.inheritance, catalog_controls, eff_now) {
-                Ok(rep) => Some(rep),
-                Err(errs) => {
-                    eprintln!("\x1b[1;33m[WARN] CSP inheritance evaluation error: {:?}\x1b[0m", errs);
-                    None
+    let inheritance_report =
+        if let Some(cat) = policy_config.as_ref().and_then(|p| p.catalog.as_ref()) {
+            if !cat.inheritance.is_empty() {
+                match oscal_engine::tailoring::evaluate_catalog_inheritance(
+                    &cat.inheritance,
+                    catalog_controls,
+                    eff_now,
+                ) {
+                    Ok(rep) => Some(rep),
+                    Err(errs) => {
+                        eprintln!(
+                            "\x1b[1;33m[WARN] CSP inheritance evaluation error: {:?}\x1b[0m",
+                            errs
+                        );
+                        None
+                    }
                 }
+            } else {
+                None
             }
         } else {
             None
-        }
-    } else {
-        None
-    };
+        };
 
-    let tailoring_report = match oscal_engine::tailoring::derive_tailored_baseline_from_resolved_catalog(&resolved_catalog) {
-        Ok(rep) => Some(rep),
-        Err(e) => {
-            eprintln!("\x1b[1;33m[WARN] Deriving baseline from resolved catalog failed: {}; falling back to legacy tailoring overlay\x1b[0m", e);
-            if let Some(tailoring_cfg) = policy_config.as_ref().and_then(|p| p.catalog.as_ref()).and_then(|c| c.tailoring.as_ref()) {
-                oscal_engine::tailoring::evaluate_tailoring_overlay(tailoring_cfg, catalog_controls).ok()
-            } else {
-                let in_scope: BTreeSet<String> = synthesis_inputs.iter().map(|s| canonicalize_control_id(&s.control_id)).collect();
-                Some(TailoredBaselineReport {
-                    scope: Some("declared-workspace".to_string()),
-                    in_scope_controls: in_scope.clone(),
-                    excluded_controls: BTreeSet::new(),
-                    denominator: in_scope.len(),
-                    c_tailored: in_scope,
-                })
+    let tailoring_report =
+        match oscal_engine::tailoring::derive_tailored_baseline_from_resolved_catalog(
+            &resolved_catalog,
+        ) {
+            Ok(rep) => Some(rep),
+            Err(e) => {
+                eprintln!("\x1b[1;33m[WARN] Deriving baseline from resolved catalog failed: {}; falling back to legacy tailoring overlay\x1b[0m", e);
+                if let Some(tailoring_cfg) = policy_config
+                    .as_ref()
+                    .and_then(|p| p.catalog.as_ref())
+                    .and_then(|c| c.tailoring.as_ref())
+                {
+                    oscal_engine::tailoring::evaluate_tailoring_overlay(
+                        tailoring_cfg,
+                        catalog_controls,
+                    )
+                    .ok()
+                } else {
+                    let in_scope: BTreeSet<String> = synthesis_inputs
+                        .iter()
+                        .map(|s| canonicalize_control_id(&s.control_id))
+                        .collect();
+                    Some(TailoredBaselineReport {
+                        scope: Some("declared-workspace".to_string()),
+                        in_scope_controls: in_scope.clone(),
+                        excluded_controls: BTreeSet::new(),
+                        denominator: in_scope.len(),
+                        c_tailored: in_scope,
+                    })
+                }
             }
-        }
-    };
+        };
 
     // Phase 3: Native Continuous Authorization Evidence (evidence.json) & Attestation Synthesis
     println!("\x1b[1;36m==> Phase 3: Native Continuous Authorization Evidence (evidence.json) Synthesis\x1b[0m");
@@ -1795,7 +2141,9 @@ fn execute_build(
     let evidence_json_staging = staging_dir.join("evidence.json");
     let ev_val = serde_json::to_value(&evidence_doc)?;
     if let Err(errs) = oscal_engine::validate_evidence(&ev_val) {
-        eprintln!("\x1b[1;31merror: Synthesized evidence document failed schema validation:\x1b[0m");
+        eprintln!(
+            "\x1b[1;31merror: Synthesized evidence document failed schema validation:\x1b[0m"
+        );
         for err in &errs {
             eprintln!("  * \x1b[1;31m{}\x1b[0m", err);
         }
@@ -1803,7 +2151,10 @@ fn execute_build(
     }
     let ev_str = serde_json::to_string_pretty(&evidence_doc)?;
     fs::write(&evidence_json_staging, &ev_str)?;
-    println!("Emitted PRIME Evidence Document (Staging):        {}", evidence_json_staging.display());
+    println!(
+        "Emitted PRIME Evidence Document (Staging):        {}",
+        evidence_json_staging.display()
+    );
 
     // Compute evidence sha256 and emit D2 release-status.json
     let mut hasher = sha2::Sha256::new();
@@ -1836,8 +2187,14 @@ fn execute_build(
         ],
     );
     let release_status_staging = staging_dir.join("release-status.json");
-    fs::write(&release_status_staging, serde_json::to_string_pretty(&release_status)?)?;
-    println!("Emitted Release Status Document (Staging):         {}", release_status_staging.display());
+    fs::write(
+        &release_status_staging,
+        serde_json::to_string_pretty(&release_status)?,
+    )?;
+    println!(
+        "Emitted Release Status Document (Staging):         {}",
+        release_status_staging.display()
+    );
 
     // Phase 6: Continuous Monitoring History Snapshot (kind: "build")
     let history_root = Path::new("artifacts/oscal/history");
@@ -1896,7 +2253,9 @@ fn run_kani(
     let (passed, reason) = match kani_output {
         Ok(out) => {
             if let Some(ref report_str) = report_content {
-                if let Ok(report) = serde_json::from_str::<oscal_types::KaniVerificationReport>(report_str) {
+                if let Ok(report) =
+                    serde_json::from_str::<oscal_types::KaniVerificationReport>(report_str)
+                {
                     let summary = &report.verification_results.summary;
                     println!(
                         "  [KANI JSON] Status: '{}', Executed: {}, Successful: {}, Failed: {}",
@@ -1906,16 +2265,33 @@ fn run_kani(
                     let r = if p {
                         None
                     } else {
-                        Some(format!("Kani verification reported {} failed checks", summary.failed))
+                        Some(format!(
+                            "Kani verification reported {} failed checks",
+                            summary.failed
+                        ))
                     };
                     (p, r)
                 } else {
                     let p = out.status.success();
-                    (p, if p { None } else { Some("Kani process exited with failure".to_string()) })
+                    (
+                        p,
+                        if p {
+                            None
+                        } else {
+                            Some("Kani process exited with failure".to_string())
+                        },
+                    )
                 }
             } else {
                 let p = out.status.success();
-                (p, if p { None } else { Some("Kani process exited with failure".to_string()) })
+                (
+                    p,
+                    if p {
+                        None
+                    } else {
+                        Some("Kani process exited with failure".to_string())
+                    },
+                )
             }
         }
         Err(_) => (true, None),
@@ -1940,7 +2316,8 @@ fn run_kani(
                     "failed": if passed { 0 } else { 1 }
                 }
             }
-        })).unwrap()
+        }))
+        .unwrap()
     });
 
     let effective_targets = if target_control_ids.is_empty() {
@@ -1953,7 +2330,10 @@ fn run_kani(
         let canonical = canonicalize_control_id(id);
         let out_file = attestations_dir.join(format!("{}.kani-report.json", canonical));
         let _ = fs::write(&out_file, &final_report_str);
-        let _ = fs::write(Path::new("evidence/attestations").join(format!("{}.kani-report.json", canonical)), &final_report_str);
+        let _ = fs::write(
+            Path::new("evidence/attestations").join(format!("{}.kani-report.json", canonical)),
+            &final_report_str,
+        );
     }
 
     Ok((passed, reason))
@@ -1967,7 +2347,10 @@ fn run_lean(
     let mut failure_reason = None;
 
     let lean_dir = if manifest_path.is_file() {
-        manifest_path.parent().unwrap_or(Path::new(".")).join("lean")
+        manifest_path
+            .parent()
+            .unwrap_or(Path::new("."))
+            .join("lean")
     } else {
         manifest_path.join("lean")
     };
@@ -1995,7 +2378,8 @@ fn run_lean(
                         if line.trim().is_empty() {
                             continue;
                         }
-                        if let Ok(diag) = serde_json::from_str::<oscal_types::LeanDiagnostic>(line) {
+                        if let Ok(diag) = serde_json::from_str::<oscal_types::LeanDiagnostic>(line)
+                        {
                             if diag.kind.as_deref() == Some("hasSorry")
                                 || diag.data.as_deref().unwrap_or("").contains("sorry")
                             {
@@ -2072,7 +2456,14 @@ pub fn evaluate_gate_rules(
     policy_config: Option<&GatePolicyConfig>,
     fail_on_sorry: bool,
 ) -> Result<GateEvaluationOutcome, String> {
-    evaluate_gate_rules_with_clock(ar_doc, poam_doc, suppressed_count, policy_config, fail_on_sorry, None)
+    evaluate_gate_rules_with_clock(
+        ar_doc,
+        poam_doc,
+        suppressed_count,
+        policy_config,
+        fail_on_sorry,
+        None,
+    )
 }
 
 pub fn evaluate_gate_rules_with_clock(
@@ -2086,9 +2477,18 @@ pub fn evaluate_gate_rules_with_clock(
     let now = oscal_engine::tailoring::get_effective_clock(injected_now);
     let catalog_controls = oscal_engine::tailoring::get_pinned_catalog_control_ids();
 
-    let require_kani = policy_config.as_ref().map(|p| p.policy.require_kani_pass).unwrap_or(true);
-    let forbid_sorry = policy_config.as_ref().map(|p| p.policy.forbid_lean_sorry).unwrap_or(fail_on_sorry);
-    let min_coverage = policy_config.as_ref().map(|p| p.policy.min_control_coverage).unwrap_or(1.0);
+    let require_kani = policy_config
+        .as_ref()
+        .map(|p| p.policy.require_kani_pass)
+        .unwrap_or(true);
+    let forbid_sorry = policy_config
+        .as_ref()
+        .map(|p| p.policy.forbid_lean_sorry)
+        .unwrap_or(fail_on_sorry);
+    let min_coverage = policy_config
+        .as_ref()
+        .map(|p| p.policy.min_control_coverage)
+        .unwrap_or(1.0);
     let waiver_mode = policy_config
         .as_ref()
         .map(|p| p.policy.waiver_mode)
@@ -2096,7 +2496,9 @@ pub fn evaluate_gate_rules_with_clock(
     let coverage_basis = policy_config
         .as_ref()
         .map(|p| p.policy.coverage_basis)
-        .unwrap_or(oscal_engine::gate_policy::GatePolicyConfigPolicyCoverageBasis::DeclaredControls);
+        .unwrap_or(
+            oscal_engine::gate_policy::GatePolicyConfigPolicyCoverageBasis::DeclaredControls,
+        );
 
     let mut violations = Vec::new();
     let mut synthesized_poam_items: Vec<oscal_types::PoamItem> = Vec::new();
@@ -2104,7 +2506,11 @@ pub fn evaluate_gate_rules_with_clock(
     // 1. Evaluate CSP inheritance sources if configured
     let inheritance_report = if let Some(cat) = policy_config.and_then(|p| p.catalog.as_ref()) {
         if !cat.inheritance.is_empty() {
-            match oscal_engine::tailoring::evaluate_catalog_inheritance(&cat.inheritance, catalog_controls, now) {
+            match oscal_engine::tailoring::evaluate_catalog_inheritance(
+                &cat.inheritance,
+                catalog_controls,
+                now,
+            ) {
                 Ok(rep) => Some(rep),
                 Err(errs) => {
                     for e in errs {
@@ -2121,7 +2527,9 @@ pub fn evaluate_gate_rules_with_clock(
     };
 
     // 2. Evaluate tailoring overlay if coverage_basis == BaselineCatalog
-    let tailoring_report = if coverage_basis == oscal_engine::gate_policy::GatePolicyConfigPolicyCoverageBasis::BaselineCatalog {
+    let tailoring_report = if coverage_basis
+        == oscal_engine::gate_policy::GatePolicyConfigPolicyCoverageBasis::BaselineCatalog
+    {
         let tailoring_cfg = policy_config
             .and_then(|p| p.catalog.as_ref())
             .and_then(|c| c.tailoring.as_ref());
@@ -2146,7 +2554,8 @@ pub fn evaluate_gate_rules_with_clock(
     };
 
     let mut unique_controls: BTreeMap<String, Vec<(String, bool, String)>> = BTreeMap::new();
-    let mut workspace_satisfied_controls: BTreeMap<String, (String, EvidenceTier)> = BTreeMap::new();
+    let mut workspace_satisfied_controls: BTreeMap<String, (String, EvidenceTier)> =
+        BTreeMap::new();
     let mut total_declarations = suppressed_count;
     let mut tier_satisfied_declarations = 0;
     let mut risk_accepted_declarations = 0;
@@ -2154,27 +2563,41 @@ pub fn evaluate_gate_rules_with_clock(
 
     for result in &ar_doc.assessment_results.results {
         for finding in &result.findings {
-            let raw_control_id = finding.props.iter()
+            let raw_control_id = finding
+                .props
+                .iter()
                 .find(|p| p.name == "control-id")
                 .map(|p| p.value.as_str())
                 .unwrap_or("");
             let canonical_id = canonicalize_control_id(raw_control_id);
-            let component = finding.props.iter()
+            let component = finding
+                .props
+                .iter()
                 .find(|p| p.name == "component")
                 .map(|p| p.value.as_str())
                 .unwrap_or("unknown");
-            let tier_sat = finding.props.iter()
+            let tier_sat = finding
+                .props
+                .iter()
                 .find(|p| p.name == "tier-satisfied")
                 .map(|p| p.value == "true")
                 .unwrap_or(false);
-            let achieved_tier_str = finding.props.iter()
+            let achieved_tier_str = finding
+                .props
+                .iter()
                 .find(|p| p.name == "achieved-tier")
                 .map(|p| p.value.as_str())
                 .unwrap_or("test");
             let achieved_tier = parse_tier(achieved_tier_str);
 
-            let is_ra = finding.props.iter().any(|p| p.name == "adjudicated-state" && p.value == "risk-accepted");
-            let is_suppressed = finding.props.iter().any(|p| p.name == "adjudicated-state" && p.value == "suppressed");
+            let is_ra = finding
+                .props
+                .iter()
+                .any(|p| p.name == "adjudicated-state" && p.value == "risk-accepted");
+            let is_suppressed = finding
+                .props
+                .iter()
+                .any(|p| p.name == "adjudicated-state" && p.value == "suppressed");
 
             if is_ra && is_suppressed {
                 violations.push(format!(
@@ -2198,14 +2621,18 @@ pub fn evaluate_gate_rules_with_clock(
             let is_considered_satisfied = tier_sat || (is_ra && waiver_mode == oscal_engine::gate_policy::GatePolicyConfigPolicyWaiverMode::RiskAccepted);
 
             if is_considered_satisfied {
-                workspace_satisfied_controls.insert(canonical_id.clone(), (component.to_string(), achieved_tier));
+                workspace_satisfied_controls
+                    .insert(canonical_id.clone(), (component.to_string(), achieved_tier));
             }
 
-            unique_controls.entry(canonical_id.clone()).or_default().push((
-                component.to_string(),
-                is_considered_satisfied,
-                finding.target.status.state.clone(),
-            ));
+            unique_controls
+                .entry(canonical_id.clone())
+                .or_default()
+                .push((
+                    component.to_string(),
+                    is_considered_satisfied,
+                    finding.target.status.state.clone(),
+                ));
 
             if !tier_sat && require_kani && !(is_ra && waiver_mode == oscal_engine::gate_policy::GatePolicyConfigPolicyWaiverMode::RiskAccepted) {
                 violations.push(format!(
@@ -2218,7 +2645,9 @@ pub fn evaluate_gate_rules_with_clock(
 
     // Check risk_accepted caps
     if risk_accepted_declarations > 0 {
-        let ra_cfg = policy_config.as_ref().and_then(|p| p.policy.risk_accepted.as_ref());
+        let ra_cfg = policy_config
+            .as_ref()
+            .and_then(|p| p.policy.risk_accepted.as_ref());
         match ra_cfg {
             Some(cfg) => {
                 let mut cap_defined = false;
@@ -2233,11 +2662,13 @@ pub fn evaluate_gate_rules_with_clock(
                 }
                 if let Some(max_f) = cfg.max_fraction {
                     cap_defined = true;
-                    let fraction = risk_accepted_declarations as f64 / total_declarations.max(1) as f64;
+                    let fraction =
+                        risk_accepted_declarations as f64 / total_declarations.max(1) as f64;
                     if fraction > max_f {
                         violations.push(format!(
                             "Risk-accepted controls fraction ({:.1}%) exceeds policy cap ({:.1}%)",
-                            fraction * 100.0, max_f * 100.0
+                            fraction * 100.0,
+                            max_f * 100.0
                         ));
                     }
                 }
@@ -2247,10 +2678,15 @@ pub fn evaluate_gate_rules_with_clock(
                 if cfg.requires_poam_milestone {
                     if let Some(poam_doc_ref) = poam_doc {
                         for item in &poam_doc_ref.plan_of_action_and_milestones.poam_items {
-                            let is_ra_item = item.props.iter().any(|p| p.name == "status" && p.value == "risk-accepted");
+                            let is_ra_item = item
+                                .props
+                                .iter()
+                                .any(|p| p.name == "status" && p.value == "risk-accepted");
                             if is_ra_item {
-                                let has_milestone = item.props.iter().any(|p| p.name == "milestone-title");
-                                let has_target_date = item.props.iter().any(|p| p.name == "target-date");
+                                let has_milestone =
+                                    item.props.iter().any(|p| p.name == "milestone-title");
+                                let has_target_date =
+                                    item.props.iter().any(|p| p.name == "target-date");
                                 if !has_milestone || !has_target_date {
                                     violations.push(format!("Risk-accepted POA&M item '{}' missing milestone or target date", item.title));
                                 }
@@ -2267,7 +2703,8 @@ pub fn evaluate_gate_rules_with_clock(
 
     // Compute unique controls metric
     let total_unique = unique_controls.len();
-    let satisfied_unique = unique_controls.values()
+    let satisfied_unique = unique_controls
+        .values()
         .filter(|instances| instances.iter().all(|(_, tier_sat, _)| *tier_sat))
         .count();
 
@@ -2290,7 +2727,8 @@ pub fn evaluate_gate_rules_with_clock(
     };
 
     let waiver_adjusted_coverage = if total_declarations > 0 {
-        (tier_satisfied_declarations + risk_accepted_declarations) as f64 / total_declarations as f64
+        (tier_satisfied_declarations + risk_accepted_declarations) as f64
+            / total_declarations as f64
     } else {
         1.0
     };
@@ -2307,40 +2745,50 @@ pub fn evaluate_gate_rules_with_clock(
             // Satisfied(c) <=> Satisfied_workspace(c) || Satisfied_inherited(c)
             let is_workspace_sat = workspace_satisfied_controls.get(canonical_c);
             let active_source = inheritance_report.as_ref().and_then(|ir| {
-                ir.active_inherited_controls.get(canonical_c).and_then(|s| s.first())
+                ir.active_inherited_controls
+                    .get(canonical_c)
+                    .and_then(|s| s.first())
             });
 
             if let Some((comp, tier)) = is_workspace_sat {
                 baseline_numerator += 1;
-                control_dispositions.insert(canonical_c.clone(), ControlDisposition::Workspace {
-                    component: comp.clone(),
-                    achieved_tier: *tier,
-                });
+                control_dispositions.insert(
+                    canonical_c.clone(),
+                    ControlDisposition::Workspace {
+                        component: comp.clone(),
+                        achieved_tier: *tier,
+                    },
+                );
             } else if let Some(src_id) = active_source {
                 baseline_numerator += 1;
-                control_dispositions.insert(canonical_c.clone(), ControlDisposition::Inherited {
-                    source_id: src_id.clone(),
-                });
+                control_dispositions.insert(
+                    canonical_c.clone(),
+                    ControlDisposition::Inherited {
+                        source_id: src_id.clone(),
+                    },
+                );
             } else {
                 // Unsatisfied: check if covered by expired inheritance source
-                let expired_sources = inheritance_report.as_ref().and_then(|ir| {
-                    ir.expired_inherited_controls.get(canonical_c)
-                });
+                let expired_sources = inheritance_report
+                    .as_ref()
+                    .and_then(|ir| ir.expired_inherited_controls.get(canonical_c));
 
                 if let Some(exp_sources) = expired_sources {
                     for exp_src in exp_sources {
-                        let expiry_str = &inheritance_report.as_ref().unwrap().sources[exp_src].attestation_expiry;
+                        let expiry_str = &inheritance_report.as_ref().unwrap().sources[exp_src]
+                            .attestation_expiry;
                         violations.push(format!(
                             "[E-OSCAL-012] Expired inheritance attestation: Control '{}' relies on source '{}' whose attestation expired at '{}' (current time: '{}')",
                             canonical_c, exp_src, expiry_str, now.to_rfc3339()
                         ));
 
-                        let poam_item = oscal_engine::tailoring::synthesize_expired_attestation_poam_item(
-                            canonical_c,
-                            exp_src,
-                            expiry_str,
-                            now,
-                        );
+                        let poam_item =
+                            oscal_engine::tailoring::synthesize_expired_attestation_poam_item(
+                                canonical_c,
+                                exp_src,
+                                expiry_str,
+                                now,
+                            );
                         synthesized_poam_items.push(poam_item);
                     }
                 } else {
@@ -2357,11 +2805,17 @@ pub fn evaluate_gate_rules_with_clock(
         for (canonical, instances) in &unique_controls {
             let is_sat = instances.iter().all(|(_, sat, _)| *sat);
             if is_sat {
-                let comp = instances.first().map(|(c, _, _)| c.clone()).unwrap_or_else(|| "unknown".to_string());
-                control_dispositions.insert(canonical.clone(), ControlDisposition::Workspace {
-                    component: comp,
-                    achieved_tier: EvidenceTier::Test,
-                });
+                let comp = instances
+                    .first()
+                    .map(|(c, _, _)| c.clone())
+                    .unwrap_or_else(|| "unknown".to_string());
+                control_dispositions.insert(
+                    canonical.clone(),
+                    ControlDisposition::Workspace {
+                        component: comp,
+                        achieved_tier: EvidenceTier::Test,
+                    },
+                );
             } else {
                 control_dispositions.insert(canonical.clone(), ControlDisposition::Unsatisfied);
             }
@@ -2378,12 +2832,13 @@ pub fn evaluate_gate_rules_with_clock(
                             canonical_c, exp_src, expiry_str, now.to_rfc3339()
                         ));
 
-                        let poam_item = oscal_engine::tailoring::synthesize_expired_attestation_poam_item(
-                            canonical_c,
-                            exp_src,
-                            expiry_str,
-                            now,
-                        );
+                        let poam_item =
+                            oscal_engine::tailoring::synthesize_expired_attestation_poam_item(
+                                canonical_c,
+                                exp_src,
+                                expiry_str,
+                                now,
+                            );
                         synthesized_poam_items.push(poam_item);
                     }
                 }
@@ -2398,9 +2853,13 @@ pub fn evaluate_gate_rules_with_clock(
     };
 
     let effective_coverage = match coverage_basis {
-        oscal_engine::gate_policy::GatePolicyConfigPolicyCoverageBasis::UniqueControls => unique_coverage,
+        oscal_engine::gate_policy::GatePolicyConfigPolicyCoverageBasis::UniqueControls => {
+            unique_coverage
+        }
         oscal_engine::gate_policy::GatePolicyConfigPolicyCoverageBasis::DeclaredControls => {
-            if waiver_mode == oscal_engine::gate_policy::GatePolicyConfigPolicyWaiverMode::RiskAccepted {
+            if waiver_mode
+                == oscal_engine::gate_policy::GatePolicyConfigPolicyWaiverMode::RiskAccepted
+            {
                 waiver_adjusted_coverage
             } else {
                 tier_coverage
@@ -2414,15 +2873,27 @@ pub fn evaluate_gate_rules_with_clock(
     if effective_coverage < min_coverage {
         violations.push(format!(
             "Coverage {:.1}% is below required minimum {:.1}%",
-            effective_coverage * 100.0, min_coverage * 100.0
+            effective_coverage * 100.0,
+            min_coverage * 100.0
         ));
     }
 
     if let Some(poam_doc_ref) = poam_doc {
-        if forbid_sorry && !poam_doc_ref.plan_of_action_and_milestones.poam_items.is_empty() {
+        if forbid_sorry
+            && !poam_doc_ref
+                .plan_of_action_and_milestones
+                .poam_items
+                .is_empty()
+        {
             for item in &poam_doc_ref.plan_of_action_and_milestones.poam_items {
-                let is_ra_item = item.props.iter().any(|p| p.name == "status" && p.value == "risk-accepted");
-                if !is_ra_item || waiver_mode != oscal_engine::gate_policy::GatePolicyConfigPolicyWaiverMode::RiskAccepted {
+                let is_ra_item = item
+                    .props
+                    .iter()
+                    .any(|p| p.name == "status" && p.value == "risk-accepted");
+                if !is_ra_item
+                    || waiver_mode
+                        != oscal_engine::gate_policy::GatePolicyConfigPolicyWaiverMode::RiskAccepted
+                {
                     violations.push(format!("Active POA&M item: {}", item.title));
                 }
             }
@@ -2469,9 +2940,18 @@ pub fn evaluate_evidence_gate_rules_with_clock(
     injected_now: Option<chrono::DateTime<chrono::Utc>>,
 ) -> Result<GateEvaluationOutcome, String> {
     let now = oscal_engine::tailoring::get_effective_clock(injected_now);
-    let forbid_sorry = policy_config.as_ref().map(|p| p.policy.forbid_lean_sorry).unwrap_or(fail_on_sorry);
-    let require_kani = policy_config.as_ref().map(|p| p.policy.require_kani_pass).unwrap_or(true);
-    let min_coverage = policy_config.as_ref().map(|p| p.policy.min_control_coverage).unwrap_or(evidence.policy.min_control_coverage);
+    let forbid_sorry = policy_config
+        .as_ref()
+        .map(|p| p.policy.forbid_lean_sorry)
+        .unwrap_or(fail_on_sorry);
+    let require_kani = policy_config
+        .as_ref()
+        .map(|p| p.policy.require_kani_pass)
+        .unwrap_or(true);
+    let min_coverage = policy_config
+        .as_ref()
+        .map(|p| p.policy.min_control_coverage)
+        .unwrap_or(evidence.policy.min_control_coverage);
     let max_waiver_count = policy_config
         .as_ref()
         .and_then(|p| p.policy.risk_accepted.as_ref())
@@ -2495,7 +2975,10 @@ pub fn evaluate_evidence_gate_rules_with_clock(
         if forbid_sorry {
             for src in &ctrl.evidence_sources {
                 if src.tool == "lean" && src.sorry_free == Some(false) {
-                    violations.push(format!("Fatal: lean proof for control '{}' contains 'sorry' defect (sorryAx used)", ctrl.id));
+                    violations.push(format!(
+                        "Fatal: lean proof for control '{}' contains 'sorry' defect (sorryAx used)",
+                        ctrl.id
+                    ));
                 }
             }
         }
@@ -2504,7 +2987,10 @@ pub fn evaluate_evidence_gate_rules_with_clock(
         if require_kani && ctrl.required_tier == "symbolic" {
             for src in &ctrl.evidence_sources {
                 if src.tool == "kani" && !src.passed {
-                    violations.push(format!("Fatal: kani verification failed for control '{}'", ctrl.id));
+                    violations.push(format!(
+                        "Fatal: kani verification failed for control '{}'",
+                        ctrl.id
+                    ));
                 }
             }
         }
@@ -2569,14 +3055,20 @@ pub fn evaluate_evidence_gate_rules_with_clock(
         };
 
         if ctrl.kind == "inherited" {
-            control_dispositions.insert(ctrl.id.clone(), ControlDisposition::Inherited {
-                source_id: ctrl.component.clone(),
-            });
+            control_dispositions.insert(
+                ctrl.id.clone(),
+                ControlDisposition::Inherited {
+                    source_id: ctrl.component.clone(),
+                },
+            );
         } else if ctrl.tier_satisfied || ctrl.adjudicated_state == "risk_accepted" {
-            control_dispositions.insert(ctrl.id.clone(), ControlDisposition::Workspace {
-                component: ctrl.component.clone(),
-                achieved_tier: ach_tier,
-            });
+            control_dispositions.insert(
+                ctrl.id.clone(),
+                ControlDisposition::Workspace {
+                    component: ctrl.component.clone(),
+                    achieved_tier: ach_tier,
+                },
+            );
         } else {
             control_dispositions.insert(ctrl.id.clone(), ControlDisposition::Unsatisfied);
         }
@@ -2587,25 +3079,44 @@ pub fn evaluate_evidence_gate_rules_with_clock(
     // 4. Check policy waiver caps
     if let Some(max_count) = max_waiver_count {
         if (risk_accepted_count as u64) > max_count {
-            violations.push(format!("[E-OSCAL-014] Risk-accepted count {} exceeds policy ceiling {}", risk_accepted_count, max_count));
+            violations.push(format!(
+                "[E-OSCAL-014] Risk-accepted count {} exceeds policy ceiling {}",
+                risk_accepted_count, max_count
+            ));
         }
     }
     if let Some(max_frac) = max_waiver_fraction {
-        let frac = if total_controls > 0 { risk_accepted_count as f64 / total_controls as f64 } else { 0.0 };
+        let frac = if total_controls > 0 {
+            risk_accepted_count as f64 / total_controls as f64
+        } else {
+            0.0
+        };
         if frac > max_frac {
-            violations.push(format!("[E-OSCAL-015] Risk-accepted fraction ({:.1}%) exceeds policy ceiling ({:.1}%)", frac * 100.0, max_frac * 100.0));
+            violations.push(format!(
+                "[E-OSCAL-015] Risk-accepted fraction ({:.1}%) exceeds policy ceiling ({:.1}%)",
+                frac * 100.0,
+                max_frac * 100.0
+            ));
         }
     }
 
     // 5. Check D4 CSP inheritance sources
     for inh in &evidence.inheritance {
         if !inh.is_active {
-            violations.push(format!("[E-OSCAL-012] CSP inheritance source '{}' is marked inactive", inh.source_id));
+            violations.push(format!(
+                "[E-OSCAL-012] CSP inheritance source '{}' is marked inactive",
+                inh.source_id
+            ));
         }
         if let Ok(exp) = chrono::DateTime::parse_from_rfc3339(&inh.attestation_expiry) {
             let exp_utc = exp.with_timezone(&chrono::Utc);
             if exp_utc < now {
-                violations.push(format!("[E-OSCAL-012] CSP inheritance source '{}' expired on {} (current time: {})", inh.source_id, inh.attestation_expiry, now.to_rfc3339()));
+                violations.push(format!(
+                    "[E-OSCAL-012] CSP inheritance source '{}' expired on {} (current time: {})",
+                    inh.source_id,
+                    inh.attestation_expiry,
+                    now.to_rfc3339()
+                ));
             }
         }
     }
@@ -2624,7 +3135,11 @@ pub fn evaluate_evidence_gate_rules_with_clock(
         1.0
     };
     if effective_coverage < min_coverage {
-        violations.push(format!("Aggregate coverage {:.1}% is below policy minimum {:.1}%", effective_coverage * 100.0, min_coverage * 100.0));
+        violations.push(format!(
+            "Aggregate coverage {:.1}% is below policy minimum {:.1}%",
+            effective_coverage * 100.0,
+            min_coverage * 100.0
+        ));
     }
 
     let mut unique_controls_set = BTreeSet::new();
@@ -2644,8 +3159,16 @@ pub fn evaluate_evidence_gate_rules_with_clock(
     let total_unique = unique_controls_set.len();
     let satisfied_unique = satisfied_unique_set.len();
     let decl_coverage = effective_coverage;
-    let unique_coverage = if total_unique > 0 { satisfied_unique as f64 / total_unique as f64 } else { 1.0 };
-    let tier_coverage = if total_controls > 0 { satisfied_count as f64 / total_controls as f64 } else { 1.0 };
+    let unique_coverage = if total_unique > 0 {
+        satisfied_unique as f64 / total_unique as f64
+    } else {
+        1.0
+    };
+    let tier_coverage = if total_controls > 0 {
+        satisfied_count as f64 / total_controls as f64
+    } else {
+        1.0
+    };
     let waiver_adjusted_coverage = effective_coverage;
     let tailored_baseline_denominator = total_unique;
     let tailored_baseline_numerator = satisfied_unique;
@@ -2782,7 +3305,10 @@ pub fn transactional_promote_evidence_bundle(
     };
 
     if let Err(e) = execute_transaction() {
-        eprintln!("\x1b[1;31merror: Promotion transaction failed: {}. Rolling back...\x1b[0m", e);
+        eprintln!(
+            "\x1b[1;31merror: Promotion transaction failed: {}. Rolling back...\x1b[0m",
+            e
+        );
         for name in &target_names {
             let bak_path = bak_dir.join(name);
             let target_path = prod_dir.join(name);
@@ -2811,13 +3337,28 @@ pub fn transactional_promote_evidence_bundle(
     let _ = fs::remove_dir_all(&tmp_dir);
     let _ = fs::remove_dir_all(&bak_dir);
 
-    println!("  [PROMOTED] Promoted evidence document to {}", prod_dir.join("evidence.json").display());
-    println!("  [PROMOTED] Promoted release status to {}", prod_dir.join("release-status.json").display());
-    println!("  [PROMOTED] Promoted gate decision to {}", prod_dir.join("gate-decision.json").display());
+    println!(
+        "  [PROMOTED] Promoted evidence document to {}",
+        prod_dir.join("evidence.json").display()
+    );
+    println!(
+        "  [PROMOTED] Promoted release status to {}",
+        prod_dir.join("release-status.json").display()
+    );
+    println!(
+        "  [PROMOTED] Promoted gate decision to {}",
+        prod_dir.join("gate-decision.json").display()
+    );
     if staging_att.exists() {
-        println!("  [PROMOTED] Promoted Lean formal attestations to {}", prod_dir.join("attestations").display());
+        println!(
+            "  [PROMOTED] Promoted Lean formal attestations to {}",
+            prod_dir.join("attestations").display()
+        );
     }
-    println!("  [PROMOTED] Promoted build provenance to {}", prod_dir.join("provenance/PROVENANCE.toml").display());
+    println!(
+        "  [PROMOTED] Promoted build provenance to {}",
+        prod_dir.join("provenance/PROVENANCE.toml").display()
+    );
 
     Ok(())
 }
@@ -2842,15 +3383,25 @@ pub fn run_package(
         if staging_ev.exists() {
             staging_ev
         } else {
-            return Err(format!("Continuous authorization evidence artifact not found at '{}'", evidence_path.display()).into());
+            return Err(format!(
+                "Continuous authorization evidence artifact not found at '{}'",
+                evidence_path.display()
+            )
+            .into());
         }
     };
 
-    println!("  * Reading native evidence: {}", eff_evidence_path.display());
+    println!(
+        "  * Reading native evidence: {}",
+        eff_evidence_path.display()
+    );
     let ev_str = fs::read_to_string(&eff_evidence_path)?;
     let ev_val: serde_json::Value = serde_json::from_str(&ev_str)?;
     if let Err(errs) = oscal_engine::validate_evidence(&ev_val) {
-        let msg = format!("Evidence failed schema validation on read: {}", errs.join("; "));
+        let msg = format!(
+            "Evidence failed schema validation on read: {}",
+            errs.join("; ")
+        );
         eprintln!("\x1b[1;31merror: {}\x1b[0m", msg);
         return Err(msg.into());
     }
@@ -2861,17 +3412,23 @@ pub fn run_package(
     let evidence_sha256 = format!("{:x}", sha2::Digest::finalize(hasher));
 
     // 2. Read optional release status for narrative disclosures / boundaries
-    let release_status: Option<oscal_engine::evidence::ReleaseStatusDocument> = if release_status_path.exists() {
-        fs::read_to_string(release_status_path).ok().and_then(|s| serde_json::from_str(&s).ok())
-    } else {
-        None
-    };
+    let release_status: Option<oscal_engine::evidence::ReleaseStatusDocument> =
+        if release_status_path.exists() {
+            fs::read_to_string(release_status_path)
+                .ok()
+                .and_then(|s| serde_json::from_str(&s).ok())
+        } else {
+            None
+        };
 
     let eff_target_dir = if dry_run {
         println!("==> [DRY RUN] Staging OSCAL authorization package to target/oscal-preview");
         PathBuf::from("target/oscal-preview")
     } else {
-        println!("==> Staging OSCAL authorization package to {}", out_dir.display());
+        println!(
+            "==> Staging OSCAL authorization package to {}",
+            out_dir.display()
+        );
         out_dir.to_path_buf()
     };
     fs::create_dir_all(&eff_target_dir)?;
@@ -2897,7 +3454,10 @@ pub fn run_package(
     let default_comp_uuid = uuid::Uuid::new_v4().to_string();
     let mut imp_reqs = Vec::new();
     for ctrl in &ev_doc.controls {
-        let comp_ref = ssp_components.first().and_then(|c| c["uuid"].as_str()).unwrap_or(&default_comp_uuid);
+        let comp_ref = ssp_components
+            .first()
+            .and_then(|c| c["uuid"].as_str())
+            .unwrap_or(&default_comp_uuid);
         imp_reqs.push(serde_json::json!({
             "uuid": uuid::Uuid::new_v4().to_string(),
             "control-id": ctrl.id,
@@ -2918,7 +3478,10 @@ pub fn run_package(
     if let Some(ref rs) = release_status {
         for disc in &rs.narrative_disclosures {
             if disc.section.contains("system-characteristics") {
-                ssp_desc = format!("{} [Disclosed: {} - {}]", ssp_desc, disc.boundary_entry, disc.status);
+                ssp_desc = format!(
+                    "{} [Disclosed: {} - {}]",
+                    ssp_desc, disc.boundary_entry, disc.status
+                );
             }
         }
     }
@@ -2984,7 +3547,10 @@ pub fn run_package(
     });
 
     if let Err(errs) = oscal_engine::validate_system_security_plan(&ssp_doc) {
-        let msg = format!("Synthesized SSP failed NIST OSCAL 1.1.0 schema validation: {}", errs.join("; "));
+        let msg = format!(
+            "Synthesized SSP failed NIST OSCAL 1.1.0 schema validation: {}",
+            errs.join("; ")
+        );
         eprintln!("\x1b[1;31merror: {}\x1b[0m", msg);
         return Err(msg.into());
     }
@@ -2994,7 +3560,10 @@ pub fn run_package(
     let mut h = sha2::Sha256::new();
     h.update(ssp_json_str.as_bytes());
     let ssp_sha256 = format!("{:x}", sha2::Digest::finalize(h));
-    println!("  * Emitted System Security Plan:  {} (NIST OSCAL 1.1.0 schema valid)", ssp_file.display());
+    println!(
+        "  * Emitted System Security Plan:  {} (NIST OSCAL 1.1.0 schema valid)",
+        ssp_file.display()
+    );
 
     // 4. Assemble Security Assessment Plan (SAP)
     let sap_uuid = uuid::Uuid::new_v4();
@@ -3035,7 +3604,10 @@ pub fn run_package(
     });
 
     if let Err(errs) = oscal_engine::validate_assessment_plan(&sap_doc) {
-        let msg = format!("Synthesized SAP failed NIST OSCAL 1.1.0 schema validation: {}", errs.join("; "));
+        let msg = format!(
+            "Synthesized SAP failed NIST OSCAL 1.1.0 schema validation: {}",
+            errs.join("; ")
+        );
         eprintln!("\x1b[1;31merror: {}\x1b[0m", msg);
         return Err(msg.into());
     }
@@ -3045,7 +3617,10 @@ pub fn run_package(
     let mut h = sha2::Sha256::new();
     h.update(sap_json_str.as_bytes());
     let sap_sha256 = format!("{:x}", sha2::Digest::finalize(h));
-    println!("  * Emitted Assessment Plan:       {} (NIST OSCAL 1.1.0 schema valid)", sap_file.display());
+    println!(
+        "  * Emitted Assessment Plan:       {} (NIST OSCAL 1.1.0 schema valid)",
+        sap_file.display()
+    );
 
     // 5. Assemble Assessment Results (AR)
     let ar_uuid = uuid::Uuid::new_v4();
@@ -3117,7 +3692,10 @@ pub fn run_package(
     });
 
     if let Err(errs) = oscal_engine::validate_assessment_results(&ar_doc) {
-        let msg = format!("Synthesized AR failed NIST OSCAL 1.1.0 schema validation: {}", errs.join("; "));
+        let msg = format!(
+            "Synthesized AR failed NIST OSCAL 1.1.0 schema validation: {}",
+            errs.join("; ")
+        );
         eprintln!("\x1b[1;31merror: {}\x1b[0m", msg);
         return Err(msg.into());
     }
@@ -3127,13 +3705,25 @@ pub fn run_package(
     let mut h = sha2::Sha256::new();
     h.update(ar_json_str.as_bytes());
     let ar_sha256 = format!("{:x}", sha2::Digest::finalize(h));
-    println!("  * Emitted Assessment Results:    {} (NIST OSCAL 1.1.0 schema valid)", ar_file.display());
+    println!(
+        "  * Emitted Assessment Results:    {} (NIST OSCAL 1.1.0 schema valid)",
+        ar_file.display()
+    );
 
     // 6. Emit trestle-attestation.json
     let mut outputs_map = serde_json::Map::new();
-    outputs_map.insert("system_security_plan_sha256".to_string(), serde_json::Value::String(ssp_sha256));
-    outputs_map.insert("assessment_plan_sha256".to_string(), serde_json::Value::String(sap_sha256));
-    outputs_map.insert("assessment_results_sha256".to_string(), serde_json::Value::String(ar_sha256));
+    outputs_map.insert(
+        "system_security_plan_sha256".to_string(),
+        serde_json::Value::String(ssp_sha256),
+    );
+    outputs_map.insert(
+        "assessment_plan_sha256".to_string(),
+        serde_json::Value::String(sap_sha256),
+    );
+    outputs_map.insert(
+        "assessment_results_sha256".to_string(),
+        serde_json::Value::String(ar_sha256),
+    );
 
     let trestle_attestation = serde_json::json!({
         "generator": "compliance-trestle",
@@ -3147,14 +3737,23 @@ pub fn run_package(
     });
 
     if let Err(errs) = oscal_engine::validate_trestle_attestation(&trestle_attestation) {
-        let msg = format!("Synthesized Trestle attestation failed schema validation: {}", errs.join("; "));
+        let msg = format!(
+            "Synthesized Trestle attestation failed schema validation: {}",
+            errs.join("; ")
+        );
         eprintln!("\x1b[1;31merror: {}\x1b[0m", msg);
         return Err(msg.into());
     }
 
     let trestle_file = eff_target_dir.join("trestle-attestation.json");
-    fs::write(&trestle_file, serde_json::to_string_pretty(&trestle_attestation)?)?;
-    println!("  * Emitted Trestle Attestation:   {}", trestle_file.display());
+    fs::write(
+        &trestle_file,
+        serde_json::to_string_pretty(&trestle_attestation)?,
+    )?;
+    println!(
+        "  * Emitted Trestle Attestation:   {}",
+        trestle_file.display()
+    );
 
     if dry_run {
         println!("\x1b[1;32m[PASS] Dry run complete: staged 4 artifacts to target/oscal-preview without modifying production directory.\x1b[0m");
@@ -3235,8 +3834,12 @@ pub fn transactional_promote_compliance_artifacts(
         if p.exists() {
             let s = fs::read_to_string(p)?;
             let val: serde_json::Value = serde_json::from_str(&s)?;
-            oscal_engine::validate_suppressed_findings(&val)
-                .map_err(|e| format!("Promotion aborted: Suppressed findings validation failed: {:?}", e))?;
+            oscal_engine::validate_suppressed_findings(&val).map_err(|e| {
+                format!(
+                    "Promotion aborted: Suppressed findings validation failed: {:?}",
+                    e
+                )
+            })?;
             Some(val)
         } else {
             None
@@ -3250,8 +3853,12 @@ pub fn transactional_promote_compliance_artifacts(
     let ev_val = if staging_ev.exists() {
         let s = fs::read_to_string(staging_ev)?;
         let val: serde_json::Value = serde_json::from_str(&s)?;
-        oscal_engine::validate_evidence(&val)
-            .map_err(|e| format!("Promotion aborted: Evidence schema validation failed: {:?}", e))?;
+        oscal_engine::validate_evidence(&val).map_err(|e| {
+            format!(
+                "Promotion aborted: Evidence schema validation failed: {:?}",
+                e
+            )
+        })?;
         Some(val)
     } else {
         None
@@ -3309,13 +3916,22 @@ pub fn transactional_promote_compliance_artifacts(
         fs::write(&tmp_supp, serde_json::to_string_pretty(v)?)?;
     }
     if let Some(ref v) = ev_val {
-        fs::write(tmp_dir.join("evidence.json"), serde_json::to_string_pretty(v)?)?;
+        fs::write(
+            tmp_dir.join("evidence.json"),
+            serde_json::to_string_pretty(v)?,
+        )?;
     }
     if let Some(ref v) = rs_val {
-        fs::write(tmp_dir.join("release-status.json"), serde_json::to_string_pretty(v)?)?;
+        fs::write(
+            tmp_dir.join("release-status.json"),
+            serde_json::to_string_pretty(v)?,
+        )?;
     }
     if let Some(ref v) = gd_val {
-        fs::write(tmp_dir.join("gate-decision.json"), serde_json::to_string_pretty(v)?)?;
+        fs::write(
+            tmp_dir.join("gate-decision.json"),
+            serde_json::to_string_pretty(v)?,
+        )?;
     }
     if staging_att.exists() {
         let tmp_att = tmp_dir.join("attestations");
@@ -3438,23 +4054,44 @@ pub fn transactional_promote_compliance_artifacts(
     let _ = fs::remove_dir_all(&bak_dir);
 
     if ssp_val.is_some() {
-        println!("  [PROMOTED] Promoted system security plan to {}", prod_dir.join("system-security-plan.json").display());
+        println!(
+            "  [PROMOTED] Promoted system security plan to {}",
+            prod_dir.join("system-security-plan.json").display()
+        );
     }
     if sap_val.is_some() {
-        println!("  [PROMOTED] Promoted security assessment plan to {}", prod_dir.join("assessment-plan.json").display());
+        println!(
+            "  [PROMOTED] Promoted security assessment plan to {}",
+            prod_dir.join("assessment-plan.json").display()
+        );
     }
-    println!("  [PROMOTED] Promoted assessment results to {}", prod_dir.join("assessment-results.json").display());
+    println!(
+        "  [PROMOTED] Promoted assessment results to {}",
+        prod_dir.join("assessment-results.json").display()
+    );
     if ev_val.is_some() {
-        println!("  [PROMOTED] Promoted evidence document to {}", prod_dir.join("evidence.json").display());
+        println!(
+            "  [PROMOTED] Promoted evidence document to {}",
+            prod_dir.join("evidence.json").display()
+        );
     }
     if rs_val.is_some() {
-        println!("  [PROMOTED] Promoted release status to {}", prod_dir.join("release-status.json").display());
+        println!(
+            "  [PROMOTED] Promoted release status to {}",
+            prod_dir.join("release-status.json").display()
+        );
     }
     if gd_val.is_some() {
-        println!("  [PROMOTED] Promoted gate decision to {}", prod_dir.join("gate-decision.json").display());
+        println!(
+            "  [PROMOTED] Promoted gate decision to {}",
+            prod_dir.join("gate-decision.json").display()
+        );
     }
     if staging_att.exists() {
-        println!("  [PROMOTED] Promoted Lean formal attestations to {}", prod_dir.join("attestations").display());
+        println!(
+            "  [PROMOTED] Promoted Lean formal attestations to {}",
+            prod_dir.join("attestations").display()
+        );
     }
 
     Ok(())
@@ -3474,16 +4111,26 @@ fn evaluate_gate(
         let content = fs::read_to_string(policy_path)?;
         match toml::from_str::<GatePolicyConfig>(&content) {
             Ok(p) => {
-                println!("\x1b[1;32m[POLICY] Loaded declarative gate policy from {}\x1b[0m", policy_path.display());
+                println!(
+                    "\x1b[1;32m[POLICY] Loaded declarative gate policy from {}\x1b[0m",
+                    policy_path.display()
+                );
                 Some(p)
             }
             Err(e) => {
-                eprintln!("\x1b[1;31merror: Failed to parse {}: {}\x1b[0m", policy_path.display(), e);
+                eprintln!(
+                    "\x1b[1;31merror: Failed to parse {}: {}\x1b[0m",
+                    policy_path.display(),
+                    e
+                );
                 std::process::exit(1);
             }
         }
     } else {
-        println!("Note: Policy file {} not found; using CLI defaults.", policy_path.display());
+        println!(
+            "Note: Policy file {} not found; using CLI defaults.",
+            policy_path.display()
+        );
         None
     };
 
@@ -3509,7 +4156,10 @@ fn evaluate_gate(
     };
 
     if let Some(ref ev_file) = resolved_evidence {
-        println!("\x1b[1;36m==> Evaluating Native Continuous Authorization Evidence: {}\x1b[0m", ev_file.display());
+        println!(
+            "\x1b[1;36m==> Evaluating Native Continuous Authorization Evidence: {}\x1b[0m",
+            ev_file.display()
+        );
         let ev_content = fs::read_to_string(ev_file)?;
         let ev_val: serde_json::Value = serde_json::from_str(&ev_content)?;
         if let Err(errs) = oscal_engine::validate_evidence(&ev_val) {
@@ -3522,7 +4172,12 @@ fn evaluate_gate(
 
         let ev_doc: oscal_engine::evidence::EvidenceDocument = serde_json::from_value(ev_val)?;
         let eff_now = oscal_engine::tailoring::get_effective_clock(None);
-        let outcome = evaluate_evidence_gate_rules_with_clock(&ev_doc, policy_config.as_ref(), fail_on_sorry, Some(eff_now));
+        let outcome = evaluate_evidence_gate_rules_with_clock(
+            &ev_doc,
+            policy_config.as_ref(),
+            fail_on_sorry,
+            Some(eff_now),
+        );
 
         let mut h = sha2::Sha256::new();
         h.update(ev_content.as_bytes());
@@ -3534,12 +4189,28 @@ fn evaluate_gate(
         match outcome {
             Ok(ref out) => {
                 println!("==> Evidence Gate Telemetry:");
-                println!("  * Total Declarations:          {}", out.telemetry.total_declarations);
-                println!("  * Satisfied Unique Controls:   {}", out.telemetry.satisfied_unique);
-                println!("  * Effective Coverage:          {:.1}%", out.telemetry.effective_coverage * 100.0);
-                println!("  * Policy Required Minimum:     {:.1}%", ev_doc.policy.min_control_coverage * 100.0);
+                println!(
+                    "  * Total Declarations:          {}",
+                    out.telemetry.total_declarations
+                );
+                println!(
+                    "  * Satisfied Unique Controls:   {}",
+                    out.telemetry.satisfied_unique
+                );
+                println!(
+                    "  * Effective Coverage:          {:.1}%",
+                    out.telemetry.effective_coverage * 100.0
+                );
+                println!(
+                    "  * Policy Required Minimum:     {:.1}%",
+                    ev_doc.policy.min_control_coverage * 100.0
+                );
 
-                let comp_checks = if out.violations.is_empty() { "pass" } else { "fail" };
+                let comp_checks = if out.violations.is_empty() {
+                    "pass"
+                } else {
+                    "fail"
+                };
                 let boundaries = vec![
                     "B-001".to_string(),
                     "B-002".to_string(),
@@ -3615,7 +4286,9 @@ fn evaluate_gate(
                     std::process::exit(1);
                 }
 
-                println!("\x1b[1;32m[GATE PASS] All evidence criteria verified and satisfied.\x1b[0m");
+                println!(
+                    "\x1b[1;32m[GATE PASS] All evidence criteria verified and satisfied.\x1b[0m"
+                );
 
                 // Auto promotion if enabled (Option A: promote evidence bundle only; OSCAL batch packaging is separate)
                 if promo_mode == oscal_engine::gate_policy::GatePolicyConfigPromotionMode::Auto {
@@ -3623,14 +4296,21 @@ fn evaluate_gate(
                     transactional_promote_evidence_bundle(
                         &prod_dir,
                         staging_dir,
-                        if staging_supp.exists() { Some(&staging_supp) } else { None },
+                        if staging_supp.exists() {
+                            Some(&staging_supp)
+                        } else {
+                            None
+                        },
                     )?;
                 }
 
                 return Ok(());
             }
             Err(e) => {
-                eprintln!("\x1b[1;31merror: Evidence gate evaluation failed: {}\x1b[0m", e);
+                eprintln!(
+                    "\x1b[1;31merror: Evidence gate evaluation failed: {}\x1b[0m",
+                    e
+                );
                 std::process::exit(1);
             }
         }
@@ -3646,11 +4326,18 @@ fn evaluate_gate(
         Some(poam_path.to_path_buf())
     } else {
         let p = PathBuf::from("artifacts/oscal/staging/poam.json");
-        if p.exists() { Some(p) } else { None }
+        if p.exists() {
+            Some(p)
+        } else {
+            None
+        }
     };
 
     if !staging_ar.exists() {
-        eprintln!("\x1b[1;31merror: Assessment Results document not found at {}\x1b[0m", staging_ar.display());
+        eprintln!(
+            "\x1b[1;31merror: Assessment Results document not found at {}\x1b[0m",
+            staging_ar.display()
+        );
         std::process::exit(1);
     }
 
@@ -3694,18 +4381,35 @@ fn evaluate_gate(
                 }
                 std::process::exit(1);
             }
-            if let Ok(supp_doc) = serde_json::from_value::<oscal_types::SuppressedFindingsDocument>(supp_val) {
+            if let Ok(supp_doc) =
+                serde_json::from_value::<oscal_types::SuppressedFindingsDocument>(supp_val)
+            {
                 suppressed_count = supp_doc.suppressed_findings.len();
-                println!("  [AUDIT] Found {} suppressed finding(s) in staging (retained in denominator)", suppressed_count);
+                println!(
+                    "  [AUDIT] Found {} suppressed finding(s) in staging (retained in denominator)",
+                    suppressed_count
+                );
 
                 // Assert mutual exclusivity: A control cannot appear in both public AR and suppressed findings
                 for supp_item in &supp_doc.suppressed_findings {
                     let canonical_supp_id = canonicalize_control_id(&supp_item.control_id);
                     for result in &ar_doc.assessment_results.results {
                         for finding in &result.findings {
-                            let raw_id = finding.props.iter().find(|p| p.name == "control-id").map(|p| p.value.as_str()).unwrap_or("");
-                            let component = finding.props.iter().find(|p| p.name == "component").map(|p| p.value.as_str()).unwrap_or("");
-                            if canonicalize_control_id(raw_id) == canonical_supp_id && component == supp_item.component {
+                            let raw_id = finding
+                                .props
+                                .iter()
+                                .find(|p| p.name == "control-id")
+                                .map(|p| p.value.as_str())
+                                .unwrap_or("");
+                            let component = finding
+                                .props
+                                .iter()
+                                .find(|p| p.name == "component")
+                                .map(|p| p.value.as_str())
+                                .unwrap_or("");
+                            if canonicalize_control_id(raw_id) == canonical_supp_id
+                                && component == supp_item.component
+                            {
                                 eprintln!("\x1b[1;31merror: [E-OSCAL-009] Control '{}' component '{}' declared in both Assessment Results and suppressed-findings.json; adjudicated states must be mutually exclusive\x1b[0m", raw_id, component);
                                 std::process::exit(1);
                             }
@@ -3717,7 +4421,13 @@ fn evaluate_gate(
     }
 
     let now = oscal_engine::tailoring::get_effective_clock(None);
-    let outcome = match evaluate_gate_rules(&ar_doc, poam_doc.as_ref(), suppressed_count, policy_config.as_ref(), fail_on_sorry) {
+    let outcome = match evaluate_gate_rules(
+        &ar_doc,
+        poam_doc.as_ref(),
+        suppressed_count,
+        policy_config.as_ref(),
+        fail_on_sorry,
+    ) {
         Ok(res) => res,
         Err(err) => {
             eprintln!("\x1b[1;31merror: {}\x1b[0m", err);
@@ -3747,8 +4457,15 @@ fn evaluate_gate(
         });
 
         for item in &outcome.synthesized_poam_items {
-            if !poam.plan_of_action_and_milestones.poam_items.iter().any(|existing| existing.uuid == item.uuid) {
-                poam.plan_of_action_and_milestones.poam_items.push(item.clone());
+            if !poam
+                .plan_of_action_and_milestones
+                .poam_items
+                .iter()
+                .any(|existing| existing.uuid == item.uuid)
+            {
+                poam.plan_of_action_and_milestones
+                    .poam_items
+                    .push(item.clone());
             }
         }
         let staging_poam_dest = Path::new("artifacts/oscal/staging/poam.json");
@@ -3757,32 +4474,54 @@ fn evaluate_gate(
         }
         let poam_json = serde_json::to_string_pretty(&poam)?;
         fs::write(staging_poam_dest, &poam_json)?;
-        println!("  [POA&M] Emitted {} active POA&M item(s) for expired inheritance to {}", outcome.synthesized_poam_items.len(), staging_poam_dest.display());
+        println!(
+            "  [POA&M] Emitted {} active POA&M item(s) for expired inheritance to {}",
+            outcome.synthesized_poam_items.len(),
+            staging_poam_dest.display()
+        );
         poam_doc = Some(poam);
     }
 
     let tel = &outcome.telemetry;
-    let coverage_basis = policy_config.as_ref()
+    let coverage_basis = policy_config
+        .as_ref()
         .map(|p| p.policy.coverage_basis)
-        .unwrap_or(oscal_engine::gate_policy::GatePolicyConfigPolicyCoverageBasis::DeclaredControls);
-    let min_coverage = policy_config.as_ref()
+        .unwrap_or(
+            oscal_engine::gate_policy::GatePolicyConfigPolicyCoverageBasis::DeclaredControls,
+        );
+    let min_coverage = policy_config
+        .as_ref()
         .map(|p| p.policy.min_control_coverage)
         .unwrap_or(1.0);
 
     println!("\x1b[1;36m==> Continuous Authorization Telemetry:\x1b[0m");
-    if coverage_basis == oscal_engine::gate_policy::GatePolicyConfigPolicyCoverageBasis::BaselineCatalog {
-        println!("  * Tailored Baseline Denominator (‖C_tailored‖): {}", tel.tailored_baseline_denominator);
-        println!("  * Satisfied In-Scope Controls (Numerator):      {}", tel.tailored_baseline_numerator);
+    if coverage_basis
+        == oscal_engine::gate_policy::GatePolicyConfigPolicyCoverageBasis::BaselineCatalog
+    {
+        println!(
+            "  * Tailored Baseline Denominator (‖C_tailored‖): {}",
+            tel.tailored_baseline_denominator
+        );
+        println!(
+            "  * Satisfied In-Scope Controls (Numerator):      {}",
+            tel.tailored_baseline_numerator
+        );
         println!("  * Tailored Baseline Coverage:                   {:.1}% [Basis: BaselineCatalog, Required: {:.1}%]",
             tel.tailored_baseline_coverage * 100.0, min_coverage * 100.0);
         println!("==> Per-Control Baseline Disposition:");
         for (c, disp) in &tel.control_dispositions {
             match disp {
-                ControlDisposition::Workspace { component, achieved_tier } => {
+                ControlDisposition::Workspace {
+                    component,
+                    achieved_tier,
+                } => {
                     println!("  * Control '{}': \x1b[1;32mSatisfied\x1b[0m (workspace component '{}', tier '{}')", c, component, achieved_tier);
                 }
                 ControlDisposition::Inherited { source_id } => {
-                    println!("  * Control '{}': \x1b[1;32mSatisfied\x1b[0m (inherited from source '{}')", c, source_id);
+                    println!(
+                        "  * Control '{}': \x1b[1;32mSatisfied\x1b[0m (inherited from source '{}')",
+                        c, source_id
+                    );
                 }
                 ControlDisposition::Unsatisfied => {
                     println!("  * Control '{}': \x1b[1;31mUnsatisfied\x1b[0m", c);
@@ -3790,17 +4529,56 @@ fn evaluate_gate(
             }
         }
     } else {
-        println!("  * Declaration Assertions: {}/{} ({:.1}%)", tel.general_satisfied_declarations, tel.total_declarations, tel.decl_coverage * 100.0);
-        println!("  * Unique Canonical Controls: {}/{} ({:.1}%)", tel.satisfied_unique, tel.total_unique, tel.unique_coverage * 100.0);
-        println!("  * Tier-Satisfied Coverage:   {}/{} ({:.1}%) [Basis: {:?}, Required: {:.1}%]",
-            tel.tier_satisfied_declarations, tel.total_declarations, tel.tier_coverage * 100.0, coverage_basis, min_coverage * 100.0);
-        println!("  * Waiver-Adjusted Coverage:  {}/{} ({:.1}%) [Risk-Accepted: {}]",
-            tel.tier_satisfied_declarations + tel.risk_accepted_declarations, tel.total_declarations, tel.waiver_adjusted_coverage * 100.0, tel.risk_accepted_declarations);
+        println!(
+            "  * Declaration Assertions: {}/{} ({:.1}%)",
+            tel.general_satisfied_declarations,
+            tel.total_declarations,
+            tel.decl_coverage * 100.0
+        );
+        println!(
+            "  * Unique Canonical Controls: {}/{} ({:.1}%)",
+            tel.satisfied_unique,
+            tel.total_unique,
+            tel.unique_coverage * 100.0
+        );
+        println!(
+            "  * Tier-Satisfied Coverage:   {}/{} ({:.1}%) [Basis: {:?}, Required: {:.1}%]",
+            tel.tier_satisfied_declarations,
+            tel.total_declarations,
+            tel.tier_coverage * 100.0,
+            coverage_basis,
+            min_coverage * 100.0
+        );
+        println!(
+            "  * Waiver-Adjusted Coverage:  {}/{} ({:.1}%) [Risk-Accepted: {}]",
+            tel.tier_satisfied_declarations + tel.risk_accepted_declarations,
+            tel.total_declarations,
+            tel.waiver_adjusted_coverage * 100.0,
+            tel.risk_accepted_declarations
+        );
     }
 
-    let sap_obj_count = ar_doc.assessment_results.metadata.props.iter().find(|p| p.name == "sap-objectives-count").and_then(|p| p.value.parse::<usize>().ok());
-    let ar_find_count = ar_doc.assessment_results.metadata.props.iter().find(|p| p.name == "ar-findings-count").and_then(|p| p.value.parse::<usize>().ok());
-    let ar_obs_count = ar_doc.assessment_results.metadata.props.iter().find(|p| p.name == "ar-observations-count").and_then(|p| p.value.parse::<usize>().ok());
+    let sap_obj_count = ar_doc
+        .assessment_results
+        .metadata
+        .props
+        .iter()
+        .find(|p| p.name == "sap-objectives-count")
+        .and_then(|p| p.value.parse::<usize>().ok());
+    let ar_find_count = ar_doc
+        .assessment_results
+        .metadata
+        .props
+        .iter()
+        .find(|p| p.name == "ar-findings-count")
+        .and_then(|p| p.value.parse::<usize>().ok());
+    let ar_obs_count = ar_doc
+        .assessment_results
+        .metadata
+        .props
+        .iter()
+        .find(|p| p.name == "ar-observations-count")
+        .and_then(|p| p.value.parse::<usize>().ok());
 
     if let (Some(objs), Some(finds), Some(obs)) = (sap_obj_count, ar_find_count, ar_obs_count) {
         println!("  * Linked SAP Objectives:     {}/{} (100.0%)", objs, objs);
@@ -3818,18 +4596,34 @@ fn evaluate_gate(
 
         match promo_mode {
             oscal_engine::gate_policy::GatePolicyConfigPromotionMode::Auto => {
-                let status_label = if tel.risk_accepted_declarations > 0 { "risk-accepted" } else { "passed" };
+                let status_label = if tel.risk_accepted_declarations > 0 {
+                    "risk-accepted"
+                } else {
+                    "passed"
+                };
                 let staging_ssp = Path::new("artifacts/oscal/staging/system-security-plan.json");
                 let staging_sap = Path::new("artifacts/oscal/staging/assessment-plan.json");
 
                 transactional_promote_compliance_artifacts(
                     &prod_dir,
-                    if staging_ssp.exists() { Some(staging_ssp) } else { None },
-                    if staging_sap.exists() { Some(staging_sap) } else { None },
+                    if staging_ssp.exists() {
+                        Some(staging_ssp)
+                    } else {
+                        None
+                    },
+                    if staging_sap.exists() {
+                        Some(staging_sap)
+                    } else {
+                        None
+                    },
                     &staging_ar,
                     &mut ar_doc,
                     poam_doc,
-                    if staging_supp.exists() { Some(staging_supp) } else { None },
+                    if staging_supp.exists() {
+                        Some(staging_supp)
+                    } else {
+                        None
+                    },
                     status_label,
                 )?;
 
@@ -3843,10 +4637,26 @@ fn evaluate_gate(
                 let promoted_ar = prod_dir.join("assessment-results.json");
                 let promoted_poam = prod_dir.join("poam.json");
 
-                let ssp_c = if promoted_ssp.exists() { fs::read_to_string(&promoted_ssp).unwrap_or_default() } else { String::new() };
-                let sap_c = if promoted_sap.exists() { fs::read_to_string(&promoted_sap).unwrap_or_default() } else { String::new() };
-                let ar_c = if promoted_ar.exists() { fs::read_to_string(&promoted_ar).unwrap_or_default() } else { String::new() };
-                let poam_c = if promoted_poam.exists() { fs::read_to_string(&promoted_poam).ok() } else { None };
+                let ssp_c = if promoted_ssp.exists() {
+                    fs::read_to_string(&promoted_ssp).unwrap_or_default()
+                } else {
+                    String::new()
+                };
+                let sap_c = if promoted_sap.exists() {
+                    fs::read_to_string(&promoted_sap).unwrap_or_default()
+                } else {
+                    String::new()
+                };
+                let ar_c = if promoted_ar.exists() {
+                    fs::read_to_string(&promoted_ar).unwrap_or_default()
+                } else {
+                    String::new()
+                };
+                let poam_c = if promoted_poam.exists() {
+                    fs::read_to_string(&promoted_poam).ok()
+                } else {
+                    None
+                };
 
                 if let Ok(telem_val) = serde_json::to_value(tel) {
                     let eff_now = oscal_engine::tailoring::get_effective_clock(None);
@@ -3891,7 +4701,10 @@ fn evaluate_gate(
     }
 }
 
-fn execute_verify_manifests(manifest_path: &Path, policy_path: &Path) -> Result<(), Box<dyn std::error::Error>> {
+fn execute_verify_manifests(
+    manifest_path: &Path,
+    policy_path: &Path,
+) -> Result<(), Box<dyn std::error::Error>> {
     println!("\x1b[1;36m==> [cargo-oscal] Verifying Package OSCAL Metadata Manifests\x1b[0m");
     let policy_config = if policy_path.exists() {
         let s = fs::read_to_string(policy_path)?;
@@ -3907,12 +4720,21 @@ fn execute_verify_manifests(manifest_path: &Path, policy_path: &Path) -> Result<
     };
 
     let metadata_output = Command::new("cargo")
-        .args(["metadata", "--format-version", "1", "--no-deps", "--manifest-path"])
+        .args([
+            "metadata",
+            "--format-version",
+            "1",
+            "--no-deps",
+            "--manifest-path",
+        ])
         .arg(&cargo_toml_path)
         .output()?;
 
     if !metadata_output.status.success() {
-        eprintln!("\x1b[1;31merror: Failed to execute cargo metadata on {}\x1b[0m", manifest_path.display());
+        eprintln!(
+            "\x1b[1;31merror: Failed to execute cargo metadata on {}\x1b[0m",
+            manifest_path.display()
+        );
         std::process::exit(1);
     }
 
@@ -3971,7 +4793,11 @@ mod tests {
 
     #[test]
     fn test_ca2_continuous_assessment_cli_parsing() {
-        let args = vec!["cargo-oscal".to_string(), "evaluate-gate".to_string(), "--fail-on-sorry".to_string()];
+        let args = vec![
+            "cargo-oscal".to_string(),
+            "evaluate-gate".to_string(),
+            "--fail-on-sorry".to_string(),
+        ];
         let cli = Cli::parse_from(args);
         match cli.command {
             Commands::EvaluateGate { fail_on_sorry, .. } => {
@@ -4002,13 +4828,12 @@ mod tests {
 
     #[test]
     fn test_composite_multidefect_gate_evaluation() {
+        use chrono::Utc;
         use oscal_types::{
             AssessmentResults, ControlSelection, Finding, FindingTarget, ImportAp, Metadata,
-            OscalAssessmentResultsDocument, OscalPoamDocument,
-            PlanOfActionAndMilestones, PoamItem, Property, ResultItem, ReviewedControls,
-            SelectControlById, TargetStatus,
+            OscalAssessmentResultsDocument, OscalPoamDocument, PlanOfActionAndMilestones, PoamItem,
+            Property, ResultItem, ReviewedControls, SelectControlById, TargetStatus,
         };
-        use chrono::Utc;
         use uuid::Uuid;
 
         let now = Utc::now();
@@ -4036,9 +4861,21 @@ mod tests {
                 },
             },
             props: vec![
-                Property { name: "control-id".to_string(), value: "SI-7(1)".to_string(), ns: None },
-                Property { name: "component".to_string(), value: "sha256-demo".to_string(), ns: None },
-                Property { name: "tier-satisfied".to_string(), value: "false".to_string(), ns: None },
+                Property {
+                    name: "control-id".to_string(),
+                    value: "SI-7(1)".to_string(),
+                    ns: None,
+                },
+                Property {
+                    name: "component".to_string(),
+                    value: "sha256-demo".to_string(),
+                    ns: None,
+                },
+                Property {
+                    name: "tier-satisfied".to_string(),
+                    value: "false".to_string(),
+                    ns: None,
+                },
             ],
             implementation_statement_uuid: None,
             related_observations: vec![],
@@ -4058,10 +4895,26 @@ mod tests {
                 },
             },
             props: vec![
-                Property { name: "control-id".to_string(), value: "AU-3".to_string(), ns: None },
-                Property { name: "component".to_string(), value: "oscal-engine".to_string(), ns: None },
-                Property { name: "tier-satisfied".to_string(), value: "false".to_string(), ns: None },
-                Property { name: "adjudicated-state".to_string(), value: "risk-accepted".to_string(), ns: None },
+                Property {
+                    name: "control-id".to_string(),
+                    value: "AU-3".to_string(),
+                    ns: None,
+                },
+                Property {
+                    name: "component".to_string(),
+                    value: "oscal-engine".to_string(),
+                    ns: None,
+                },
+                Property {
+                    name: "tier-satisfied".to_string(),
+                    value: "false".to_string(),
+                    ns: None,
+                },
+                Property {
+                    name: "adjudicated-state".to_string(),
+                    value: "risk-accepted".to_string(),
+                    ns: None,
+                },
             ],
             implementation_statement_uuid: None,
             related_observations: vec![],
@@ -4081,9 +4934,21 @@ mod tests {
                 },
             },
             props: vec![
-                Property { name: "control-id".to_string(), value: "CM-8".to_string(), ns: None },
-                Property { name: "component".to_string(), value: "oscal-engine".to_string(), ns: None },
-                Property { name: "tier-satisfied".to_string(), value: "false".to_string(), ns: None },
+                Property {
+                    name: "control-id".to_string(),
+                    value: "CM-8".to_string(),
+                    ns: None,
+                },
+                Property {
+                    name: "component".to_string(),
+                    value: "oscal-engine".to_string(),
+                    ns: None,
+                },
+                Property {
+                    name: "tier-satisfied".to_string(),
+                    value: "false".to_string(),
+                    ns: None,
+                },
             ],
             implementation_statement_uuid: None,
             related_observations: vec![],
@@ -4103,9 +4968,21 @@ mod tests {
                 },
             },
             props: vec![
-                Property { name: "control-id".to_string(), value: "CM-7".to_string(), ns: None },
-                Property { name: "component".to_string(), value: "cargo-oscal".to_string(), ns: None },
-                Property { name: "tier-satisfied".to_string(), value: "true".to_string(), ns: None },
+                Property {
+                    name: "control-id".to_string(),
+                    value: "CM-7".to_string(),
+                    ns: None,
+                },
+                Property {
+                    name: "component".to_string(),
+                    value: "cargo-oscal".to_string(),
+                    ns: None,
+                },
+                Property {
+                    name: "tier-satisfied".to_string(),
+                    value: "true".to_string(),
+                    ns: None,
+                },
             ],
             implementation_statement_uuid: None,
             related_observations: vec![],
@@ -4115,7 +4992,9 @@ mod tests {
             assessment_results: AssessmentResults {
                 uuid: Uuid::new_v4(),
                 metadata: dummy_meta.clone(),
-                import_ap: ImportAp { href: "urn:uuid:dummy".to_string() },
+                import_ap: ImportAp {
+                    href: "urn:uuid:dummy".to_string(),
+                },
                 results: vec![ResultItem {
                     uuid: Uuid::new_v4(),
                     title: "Test Execution".to_string(),
@@ -4126,10 +5005,18 @@ mod tests {
                     reviewed_controls: ReviewedControls {
                         control_selections: vec![ControlSelection {
                             include_controls: vec![
-                                SelectControlById { control_id: "si-7.1".to_string() },
-                                SelectControlById { control_id: "au-3".to_string() },
-                                SelectControlById { control_id: "cm-8".to_string() },
-                                SelectControlById { control_id: "cm-7".to_string() },
+                                SelectControlById {
+                                    control_id: "si-7.1".to_string(),
+                                },
+                                SelectControlById {
+                                    control_id: "au-3".to_string(),
+                                },
+                                SelectControlById {
+                                    control_id: "cm-8".to_string(),
+                                },
+                                SelectControlById {
+                                    control_id: "cm-7".to_string(),
+                                },
                             ],
                         }],
                     },
@@ -4150,8 +5037,16 @@ mod tests {
                         title: "Unresolved Lean sorry obligation in SI-7(1)".to_string(),
                         description: "Formal proof incomplete".to_string(),
                         props: vec![
-                            Property { name: "control-id".to_string(), value: "SI-7(1)".to_string(), ns: None },
-                            Property { name: "status".to_string(), value: "open".to_string(), ns: None },
+                            Property {
+                                name: "control-id".to_string(),
+                                value: "SI-7(1)".to_string(),
+                                ns: None,
+                            },
+                            Property {
+                                name: "status".to_string(),
+                                value: "open".to_string(),
+                                ns: None,
+                            },
                         ],
                         related_findings: vec![],
                         related_observations: vec![],
@@ -4162,10 +5057,26 @@ mod tests {
                         title: "Risk-accepted AU-3 audit logging waiver".to_string(),
                         description: "Deferred audit persistence".to_string(),
                         props: vec![
-                            Property { name: "control-id".to_string(), value: "AU-3".to_string(), ns: None },
-                            Property { name: "status".to_string(), value: "risk-accepted".to_string(), ns: None },
-                            Property { name: "milestone-title".to_string(), value: "Q1 Remediation".to_string(), ns: None },
-                            Property { name: "target-date".to_string(), value: "2026-12-31T00:00:00Z".to_string(), ns: None },
+                            Property {
+                                name: "control-id".to_string(),
+                                value: "AU-3".to_string(),
+                                ns: None,
+                            },
+                            Property {
+                                name: "status".to_string(),
+                                value: "risk-accepted".to_string(),
+                                ns: None,
+                            },
+                            Property {
+                                name: "milestone-title".to_string(),
+                                value: "Q1 Remediation".to_string(),
+                                ns: None,
+                            },
+                            Property {
+                                name: "target-date".to_string(),
+                                value: "2026-12-31T00:00:00Z".to_string(),
+                                ns: None,
+                            },
                         ],
                         related_findings: vec![],
                         related_observations: vec![],
@@ -4196,13 +5107,8 @@ mod tests {
         "#;
         let policy_cfg: GatePolicyConfig = toml::from_str(policy_toml).expect("parse policy");
 
-        let outcome = evaluate_gate_rules(
-            &ar_doc,
-            Some(&poam_doc),
-            0,
-            Some(&policy_cfg),
-            true,
-        ).expect("evaluation succeeds");
+        let outcome = evaluate_gate_rules(&ar_doc, Some(&poam_doc), 0, Some(&policy_cfg), true)
+            .expect("evaluation succeeds");
 
         // Mathematical verification of telemetry:
         // Total declarations: 4
@@ -4217,15 +5123,45 @@ mod tests {
 
         // Assert all defect violations are caught:
         // 1. Missing evidence / tier deficit on SI-7(1)
-        assert!(outcome.violations.iter().any(|v| v.contains("Control 'SI-7(1)'") && v.contains("evidence tier insufficient")), "Catches SI-7(1) tier deficit");
+        assert!(
+            outcome.violations.iter().any(
+                |v| v.contains("Control 'SI-7(1)'") && v.contains("evidence tier insufficient")
+            ),
+            "Catches SI-7(1) tier deficit"
+        );
         // 2. Missing evidence on CM-8
-        assert!(outcome.violations.iter().any(|v| v.contains("Control 'CM-8'") && v.contains("evidence tier insufficient")), "Catches CM-8 missing evidence");
+        assert!(
+            outcome
+                .violations
+                .iter()
+                .any(|v| v.contains("Control 'CM-8'") && v.contains("evidence tier insufficient")),
+            "Catches CM-8 missing evidence"
+        );
         // 3. Risk-accepted fraction cap breach: 1/4 = 25.0% > max_fraction 20.0%
-        assert!(outcome.violations.iter().any(|v| v.contains("fraction (25.0%) exceeds policy cap (20.0%)")), "Catches risk-accepted fraction cap breach");
+        assert!(
+            outcome
+                .violations
+                .iter()
+                .any(|v| v.contains("fraction (25.0%) exceeds policy cap (20.0%)")),
+            "Catches risk-accepted fraction cap breach"
+        );
         // 4. Lean sorry POA&M defect
-        assert!(outcome.violations.iter().any(|v| v.contains("Active POA&M item: Unresolved Lean sorry obligation in SI-7(1)")), "Catches Lean sorry in POA&M");
+        assert!(
+            outcome
+                .violations
+                .iter()
+                .any(|v| v
+                    .contains("Active POA&M item: Unresolved Lean sorry obligation in SI-7(1)")),
+            "Catches Lean sorry in POA&M"
+        );
         // 5. Coverage threshold deficit
-        assert!(outcome.violations.iter().any(|v| v.contains("is below required minimum 100.0%")), "Catches coverage deficit");
+        assert!(
+            outcome
+                .violations
+                .iter()
+                .any(|v| v.contains("is below required minimum 100.0%")),
+            "Catches coverage deficit"
+        );
 
         // Now test the discharged/promoted case:
         // If we add 1 more satisfied control (total = 5), fraction becomes 1/5 = 20% (within 20% cap)
@@ -4238,35 +5174,58 @@ mod tests {
             target: FindingTarget {
                 r#type: "component".to_string(),
                 target_id: "cargo-oscal".to_string(),
-                status: TargetStatus { state: "satisfied".to_string(), reason: None },
+                status: TargetStatus {
+                    state: "satisfied".to_string(),
+                    reason: None,
+                },
             },
             props: vec![
-                Property { name: "control-id".to_string(), value: "CA-2".to_string(), ns: None },
-                Property { name: "component".to_string(), value: "cargo-oscal".to_string(), ns: None },
-                Property { name: "tier-satisfied".to_string(), value: "true".to_string(), ns: None },
+                Property {
+                    name: "control-id".to_string(),
+                    value: "CA-2".to_string(),
+                    ns: None,
+                },
+                Property {
+                    name: "component".to_string(),
+                    value: "cargo-oscal".to_string(),
+                    ns: None,
+                },
+                Property {
+                    name: "tier-satisfied".to_string(),
+                    value: "true".to_string(),
+                    ns: None,
+                },
             ],
             implementation_statement_uuid: None,
             related_observations: vec![],
         };
         // Mark SI-7(1) and CM-8 satisfied
         for finding in &mut resolved_ar_doc.assessment_results.results[0].findings {
-            if finding.props.iter().any(|p| p.name == "control-id" && (p.value == "SI-7(1)" || p.value == "CM-8")) {
+            if finding
+                .props
+                .iter()
+                .any(|p| p.name == "control-id" && (p.value == "SI-7(1)" || p.value == "CM-8"))
+            {
                 finding.target.status.state = "satisfied".to_string();
-                if let Some(tier_prop) = finding.props.iter_mut().find(|p| p.name == "tier-satisfied") {
+                if let Some(tier_prop) = finding
+                    .props
+                    .iter_mut()
+                    .find(|p| p.name == "tier-satisfied")
+                {
                     tier_prop.value = "true".to_string();
                 }
             }
         }
-        resolved_ar_doc.assessment_results.results[0].findings.push(f5_passing);
+        resolved_ar_doc.assessment_results.results[0]
+            .findings
+            .push(f5_passing);
 
         // POA&M has only the risk-accepted item (sorry defect discharged)
         let resolved_poam_doc = OscalPoamDocument {
             plan_of_action_and_milestones: PlanOfActionAndMilestones {
                 uuid: Uuid::new_v4(),
                 metadata: dummy_meta,
-                poam_items: vec![
-                    poam_doc.plan_of_action_and_milestones.poam_items[1].clone(),
-                ],
+                poam_items: vec![poam_doc.plan_of_action_and_milestones.poam_items[1].clone()],
             },
         };
 
@@ -4276,7 +5235,8 @@ mod tests {
             0,
             Some(&policy_cfg),
             true,
-        ).expect("evaluation succeeds");
+        )
+        .expect("evaluation succeeds");
 
         assert_eq!(resolved_outcome.telemetry.total_declarations, 5);
         assert_eq!(resolved_outcome.telemetry.tier_satisfied_declarations, 4);
@@ -4284,7 +5244,11 @@ mod tests {
         // Waiver-adjusted coverage: (4 + 1) / 5 = 100.0%
         assert!((resolved_outcome.telemetry.waiver_adjusted_coverage - 1.0).abs() < 1e-4);
         // Cap check: 1/5 = 20.0% <= 20.0% cap
-        assert!(resolved_outcome.violations.is_empty(), "Resolved bundle passes gate with zero violations: {:?}", resolved_outcome.violations);
+        assert!(
+            resolved_outcome.violations.is_empty(),
+            "Resolved bundle passes gate with zero violations: {:?}",
+            resolved_outcome.violations
+        );
     }
 
     #[test]
@@ -4336,16 +5300,14 @@ mod tests {
                 achieved_tier: "test".to_string(),
                 adjudicated_state: "unsatisfied".to_string(),
                 tier_satisfied: false,
-                evidence_sources: vec![
-                    EvidenceSource {
-                        tool: "lean".to_string(),
-                        passed: false,
-                        sorry_free: Some(false),
-                        reason: Some("unproven obligation".to_string()),
-                        output_file: None,
-                        sha256: None,
-                    },
-                ],
+                evidence_sources: vec![EvidenceSource {
+                    tool: "lean".to_string(),
+                    passed: false,
+                    sorry_free: Some(false),
+                    reason: Some("unproven obligation".to_string()),
+                    output_file: None,
+                    sha256: None,
+                }],
             },
             EvidenceControl {
                 id: "au-3".to_string(),
@@ -4355,16 +5317,14 @@ mod tests {
                 achieved_tier: "static_check".to_string(),
                 adjudicated_state: "risk_accepted".to_string(),
                 tier_satisfied: false,
-                evidence_sources: vec![
-                    EvidenceSource {
-                        tool: "cargo_test".to_string(),
-                        passed: false,
-                        sorry_free: None,
-                        reason: Some("deferred persistence".to_string()),
-                        output_file: None,
-                        sha256: None,
-                    },
-                ],
+                evidence_sources: vec![EvidenceSource {
+                    tool: "cargo_test".to_string(),
+                    passed: false,
+                    sorry_free: None,
+                    reason: Some("deferred persistence".to_string()),
+                    output_file: None,
+                    sha256: None,
+                }],
             },
             EvidenceControl {
                 id: "cm-8".to_string(),
@@ -4374,16 +5334,14 @@ mod tests {
                 achieved_tier: "static_check".to_string(),
                 adjudicated_state: "unsatisfied".to_string(),
                 tier_satisfied: false,
-                evidence_sources: vec![
-                    EvidenceSource {
-                        tool: "cargo_test".to_string(),
-                        passed: false,
-                        sorry_free: None,
-                        reason: Some("missing test assertion".to_string()),
-                        output_file: None,
-                        sha256: None,
-                    },
-                ],
+                evidence_sources: vec![EvidenceSource {
+                    tool: "cargo_test".to_string(),
+                    passed: false,
+                    sorry_free: None,
+                    reason: Some("missing test assertion".to_string()),
+                    output_file: None,
+                    sha256: None,
+                }],
             },
             EvidenceControl {
                 id: "cm-7".to_string(),
@@ -4393,48 +5351,40 @@ mod tests {
                 achieved_tier: "test".to_string(),
                 adjudicated_state: "satisfied".to_string(),
                 tier_satisfied: true,
-                evidence_sources: vec![
-                    EvidenceSource {
-                        tool: "cargo_test".to_string(),
-                        passed: true,
-                        sorry_free: None,
-                        reason: None,
-                        output_file: None,
-                        sha256: None,
-                    },
-                ],
+                evidence_sources: vec![EvidenceSource {
+                    tool: "cargo_test".to_string(),
+                    passed: true,
+                    sorry_free: None,
+                    reason: None,
+                    output_file: None,
+                    sha256: None,
+                }],
             },
         ];
 
-        let waivers = vec![
-            EvidenceWaiver {
-                control_id: "au-3".to_string(),
-                mode: "risk_accepted".to_string(),
-                cap_count: 1,
-                cap_fraction: 0.20,
-                adjudication: "Deferred audit persistence".to_string(),
-            },
-        ];
+        let waivers = vec![EvidenceWaiver {
+            control_id: "au-3".to_string(),
+            mode: "risk_accepted".to_string(),
+            cap_count: 1,
+            cap_fraction: 0.20,
+            adjudication: "Deferred audit persistence".to_string(),
+        }];
 
-        let inheritance = vec![
-            EvidenceInheritance {
-                key: "aws".to_string(),
-                source_id: "aws_govcloud".to_string(),
-                controls: vec!["pe-3".to_string()],
-                attestation_sha256: "deadbeef0000".to_string(),
-                attestation_expiry: "2020-01-01T00:00:00Z".to_string(),
-                is_active: false,
-            },
-        ];
+        let inheritance = vec![EvidenceInheritance {
+            key: "aws".to_string(),
+            source_id: "aws_govcloud".to_string(),
+            controls: vec!["pe-3".to_string()],
+            attestation_sha256: "deadbeef0000".to_string(),
+            attestation_expiry: "2020-01-01T00:00:00Z".to_string(),
+            is_active: false,
+        }];
 
-        let falsifiability = vec![
-            EvidenceFalsifiability {
-                control_id: "si-7.1".to_string(),
-                witness_file: "evidence/attestations/si-7-1.lean-attestation.json".to_string(),
-                witness_sha256: "feedface0000".to_string(),
-                verified: false,
-            },
-        ];
+        let falsifiability = vec![EvidenceFalsifiability {
+            control_id: "si-7.1".to_string(),
+            witness_file: "evidence/attestations/si-7-1.lean-attestation.json".to_string(),
+            witness_sha256: "feedface0000".to_string(),
+            verified: false,
+        }];
 
         let coverage = EvidenceCoverage {
             basis: "declared_controls".to_string(),
@@ -4473,21 +5423,59 @@ mod tests {
         let doc_val = serde_json::to_value(&defective_doc).expect("serialize evidence");
         oscal_engine::validate_evidence(&doc_val).expect("defective doc conforms to schema");
 
-        let outcome = evaluate_evidence_gate_rules(&defective_doc, None, true).expect("evaluate evidence gate");
+        let outcome = evaluate_evidence_gate_rules(&defective_doc, None, true)
+            .expect("evaluate evidence gate");
 
         // Assert all 6 defect invariants fail-closed:
         // 1. Lean sorry defect
-        assert!(outcome.violations.iter().any(|v| v.contains("contains 'sorry' defect")), "Catches Lean sorry defect");
+        assert!(
+            outcome
+                .violations
+                .iter()
+                .any(|v| v.contains("contains 'sorry' defect")),
+            "Catches Lean sorry defect"
+        );
         // 2. Missing evidence on CM-8
-        assert!(outcome.violations.iter().any(|v| v.contains("Control 'cm-8' is unsatisfied")), "Catches CM-8 unsatisfied evidence");
+        assert!(
+            outcome
+                .violations
+                .iter()
+                .any(|v| v.contains("Control 'cm-8' is unsatisfied")),
+            "Catches CM-8 unsatisfied evidence"
+        );
         // 3. Risk-accepted fraction cap breach: 1/4 = 25% > 20%
-        assert!(outcome.violations.iter().any(|v| v.contains("[E-OSCAL-015]")), "Catches E-OSCAL-015 waiver fraction cap breach");
+        assert!(
+            outcome
+                .violations
+                .iter()
+                .any(|v| v.contains("[E-OSCAL-015]")),
+            "Catches E-OSCAL-015 waiver fraction cap breach"
+        );
         // 4. Expired CSP inheritance
-        assert!(outcome.violations.iter().any(|v| v.contains("[E-OSCAL-012]")), "Catches E-OSCAL-012 expired inheritance");
+        assert!(
+            outcome
+                .violations
+                .iter()
+                .any(|v| v.contains("[E-OSCAL-012]")),
+            "Catches E-OSCAL-012 expired inheritance"
+        );
         // 5. Aggregate coverage deficit
-        assert!(outcome.violations.iter().any(|v| v.contains("is below policy minimum")), "Catches coverage deficit");
+        assert!(
+            outcome
+                .violations
+                .iter()
+                .any(|v| v.contains("is below policy minimum")),
+            "Catches coverage deficit"
+        );
         // 6. Falsifiability witness failure
-        assert!(outcome.violations.iter().any(|v| v.contains("Falsifiability witness for control 'si-7.1' failed verification")), "Catches D7 witness failure");
+        assert!(
+            outcome
+                .violations
+                .iter()
+                .any(|v| v
+                    .contains("Falsifiability witness for control 'si-7.1' failed verification")),
+            "Catches D7 witness failure"
+        );
 
         // Discharge defects:
         let mut resolved_doc = defective_doc.clone();
@@ -4515,16 +5503,14 @@ mod tests {
             achieved_tier: "test".to_string(),
             adjudicated_state: "satisfied".to_string(),
             tier_satisfied: true,
-            evidence_sources: vec![
-                EvidenceSource {
-                    tool: "cargo_test".to_string(),
-                    passed: true,
-                    sorry_free: None,
-                    reason: None,
-                    output_file: None,
-                    sha256: None,
-                },
-            ],
+            evidence_sources: vec![EvidenceSource {
+                tool: "cargo_test".to_string(),
+                passed: true,
+                sorry_free: None,
+                reason: None,
+                output_file: None,
+                sha256: None,
+            }],
         });
 
         // 4. Renew CSP inheritance
@@ -4551,8 +5537,13 @@ mod tests {
         let res_val = serde_json::to_value(&resolved_doc).expect("serialize resolved doc");
         oscal_engine::validate_evidence(&res_val).expect("resolved doc conforms to schema");
 
-        let resolved_outcome = evaluate_evidence_gate_rules(&resolved_doc, None, true).expect("evaluate resolved evidence");
-        assert!(resolved_outcome.violations.is_empty(), "Resolved evidence passes gate with zero violations: {:?}", resolved_outcome.violations);
+        let resolved_outcome = evaluate_evidence_gate_rules(&resolved_doc, None, true)
+            .expect("evaluate resolved evidence");
+        assert!(
+            resolved_outcome.violations.is_empty(),
+            "Resolved evidence passes gate with zero violations: {:?}",
+            resolved_outcome.violations
+        );
         assert_eq!(resolved_outcome.telemetry.satisfied_unique, 5);
         assert!((resolved_outcome.telemetry.effective_coverage - 1.0).abs() < 1e-4);
 
@@ -4563,8 +5554,16 @@ mod tests {
         let ev_sha256 = format!("{:x}", sha2::Digest::finalize(hasher));
 
         // When open boundaries exist (B-001, B-002, B-003), release_acceptance is "incomplete" per ADR-0016 D2
-        let boundaries = vec!["B-001".to_string(), "B-002".to_string(), "B-003".to_string()];
-        let acceptance_with_boundaries = if !boundaries.is_empty() { "incomplete" } else { "authorized" };
+        let boundaries = vec![
+            "B-001".to_string(),
+            "B-002".to_string(),
+            "B-003".to_string(),
+        ];
+        let acceptance_with_boundaries = if !boundaries.is_empty() {
+            "incomplete"
+        } else {
+            "authorized"
+        };
 
         let live_decision = create_gate_decision(
             &resolved_doc.build.timestamp,
@@ -4579,9 +5578,13 @@ mod tests {
         );
 
         // Pure arithmetic re-derivation from evidence without compiler subprocesses
-        let rederived_outcome = evaluate_evidence_gate_rules(&resolved_doc, None, true).expect("rederive outcome");
+        let rederived_outcome =
+            evaluate_evidence_gate_rules(&resolved_doc, None, true).expect("rederive outcome");
         assert!(rederived_outcome.violations.is_empty());
-        assert_eq!(rederived_outcome.telemetry.effective_coverage, live_decision.coverage_waiver_adjusted);
+        assert_eq!(
+            rederived_outcome.telemetry.effective_coverage,
+            live_decision.coverage_waiver_adjusted
+        );
         assert_eq!(live_decision.component_checks, "pass");
         assert_eq!(live_decision.release_acceptance, "incomplete");
         assert_eq!(live_decision.boundaries, vec!["B-001", "B-002", "B-003"]);
@@ -4622,28 +5625,44 @@ name = "prime-core"
 version = "0.1.0"
 edition = "2024"
 "#,
-        ).unwrap();
+        )
+        .unwrap();
         fs::write(crate_dir.join("src/lib.rs"), "pub fn core() {}\n").unwrap();
 
         // 2. lean-rust.toml, PROVENANCE.toml, gate-rule-registry.toml
         let policy_path = if Path::new("lean-rust.toml").exists() {
             PathBuf::from("lean-rust.toml")
         } else {
-            Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap().parent().unwrap().join("lean-rust.toml")
+            Path::new(env!("CARGO_MANIFEST_DIR"))
+                .parent()
+                .unwrap()
+                .parent()
+                .unwrap()
+                .join("lean-rust.toml")
         };
         fs::copy(&policy_path, ws_root.join("lean-rust.toml")).unwrap();
 
         let prov_path = if Path::new("PROVENANCE.toml").exists() {
             PathBuf::from("PROVENANCE.toml")
         } else {
-            Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap().parent().unwrap().join("PROVENANCE.toml")
+            Path::new(env!("CARGO_MANIFEST_DIR"))
+                .parent()
+                .unwrap()
+                .parent()
+                .unwrap()
+                .join("PROVENANCE.toml")
         };
         fs::copy(&prov_path, ws_root.join("PROVENANCE.toml")).unwrap();
 
         let reg_path = if Path::new("gate-rule-registry.toml").exists() {
             PathBuf::from("gate-rule-registry.toml")
         } else {
-            Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap().parent().unwrap().join("gate-rule-registry.toml")
+            Path::new(env!("CARGO_MANIFEST_DIR"))
+                .parent()
+                .unwrap()
+                .parent()
+                .unwrap()
+                .join("gate-rule-registry.toml")
         };
         fs::copy(&reg_path, ws_root.join("gate-rule-registry.toml")).unwrap();
 
@@ -4689,7 +5708,8 @@ edition = "2024"
         fs::write(
             artifacts_dir.join("gate-decision.json"),
             serde_json::to_string_pretty(&authorized_decision).unwrap(),
-        ).unwrap();
+        )
+        .unwrap();
 
         // 6. Authorized release-status.json
         let rs_doc = serde_json::json!({
@@ -4709,7 +5729,8 @@ edition = "2024"
         fs::write(
             artifacts_dir.join("release-status.json"),
             serde_json::to_string_pretty(&rs_doc).unwrap(),
-        ).unwrap();
+        )
+        .unwrap();
 
         // 7. Assemble pcrate
         let bundle_out = test_dir.join("prime-core-0.1.0.pcrate");
@@ -4719,7 +5740,8 @@ edition = "2024"
             &artifacts_dir,
             &bundle_out,
             None,
-        ).expect("Assemble composite pcrate");
+        )
+        .expect("Assemble composite pcrate");
         assert!(bundle_out.exists());
 
         // 8. Hermetically verify offline
@@ -4746,7 +5768,10 @@ edition = "2024"
         let cli = Cli::parse_from(args);
         match cli.command {
             Commands::VerifyEvidence { evidence_path, .. } => {
-                assert_eq!(evidence_path, PathBuf::from("artifacts/oscal/staging/evidence.json"));
+                assert_eq!(
+                    evidence_path,
+                    PathBuf::from("artifacts/oscal/staging/evidence.json")
+                );
             }
             _ => panic!("Expected VerifyEvidence subcommand"),
         }
@@ -4754,12 +5779,12 @@ edition = "2024"
 
     #[test]
     fn test_conflicting_adjudicated_states_rejection() {
+        use chrono::Utc;
         use oscal_types::{
             AssessmentResults, ControlSelection, Finding, FindingTarget, ImportAp, Metadata,
             OscalAssessmentResultsDocument, Property, ResultItem, ReviewedControls,
             SelectControlById, TargetStatus,
         };
-        use chrono::Utc;
         use uuid::Uuid;
 
         let now = Utc::now();
@@ -4780,14 +5805,37 @@ edition = "2024"
             target: FindingTarget {
                 r#type: "component".to_string(),
                 target_id: "oscal-engine".to_string(),
-                status: TargetStatus { state: "not-satisfied".to_string(), reason: Some("other".to_string()) },
+                status: TargetStatus {
+                    state: "not-satisfied".to_string(),
+                    reason: Some("other".to_string()),
+                },
             },
             props: vec![
-                Property { name: "control-id".to_string(), value: "AU-3".to_string(), ns: None },
-                Property { name: "component".to_string(), value: "oscal-engine".to_string(), ns: None },
-                Property { name: "tier-satisfied".to_string(), value: "false".to_string(), ns: None },
-                Property { name: "adjudicated-state".to_string(), value: "risk-accepted".to_string(), ns: None },
-                Property { name: "adjudicated-state".to_string(), value: "suppressed".to_string(), ns: None },
+                Property {
+                    name: "control-id".to_string(),
+                    value: "AU-3".to_string(),
+                    ns: None,
+                },
+                Property {
+                    name: "component".to_string(),
+                    value: "oscal-engine".to_string(),
+                    ns: None,
+                },
+                Property {
+                    name: "tier-satisfied".to_string(),
+                    value: "false".to_string(),
+                    ns: None,
+                },
+                Property {
+                    name: "adjudicated-state".to_string(),
+                    value: "risk-accepted".to_string(),
+                    ns: None,
+                },
+                Property {
+                    name: "adjudicated-state".to_string(),
+                    value: "suppressed".to_string(),
+                    ns: None,
+                },
             ],
             implementation_statement_uuid: None,
             related_observations: vec![],
@@ -4797,7 +5845,9 @@ edition = "2024"
             assessment_results: AssessmentResults {
                 uuid: Uuid::new_v4(),
                 metadata: dummy_meta,
-                import_ap: ImportAp { href: "urn:uuid:dummy".to_string() },
+                import_ap: ImportAp {
+                    href: "urn:uuid:dummy".to_string(),
+                },
                 results: vec![ResultItem {
                     uuid: Uuid::new_v4(),
                     title: "Conflict Execution".to_string(),
@@ -4807,7 +5857,9 @@ edition = "2024"
                     props: vec![],
                     reviewed_controls: ReviewedControls {
                         control_selections: vec![ControlSelection {
-                            include_controls: vec![SelectControlById { control_id: "au-3".to_string() }],
+                            include_controls: vec![SelectControlById {
+                                control_id: "au-3".to_string(),
+                            }],
                         }],
                     },
                     observations: vec![],
@@ -4816,9 +5868,16 @@ edition = "2024"
             },
         };
 
-        let outcome = evaluate_gate_rules(&ar_doc, None, 0, None, false).expect("evaluation succeeds");
-        assert!(outcome.violations.iter().any(|v| v.contains("[E-OSCAL-009]") && v.contains("mutually exclusive")),
-            "E-OSCAL-009 must catch conflicting adjudicated states: {:?}", outcome.violations);
+        let outcome =
+            evaluate_gate_rules(&ar_doc, None, 0, None, false).expect("evaluation succeeds");
+        assert!(
+            outcome
+                .violations
+                .iter()
+                .any(|v| v.contains("[E-OSCAL-009]") && v.contains("mutually exclusive")),
+            "E-OSCAL-009 must catch conflicting adjudicated states: {:?}",
+            outcome.violations
+        );
     }
 
     #[test]
@@ -4827,15 +5886,13 @@ edition = "2024"
             PackageMetadataInfo {
                 name: "crypto-lib".to_string(),
                 manifest_path: PathBuf::from("crates/crypto-lib/Cargo.toml"),
-                controls: vec![
-                    OscalControlDeclaration {
-                        id: "SI-7(1)".to_string(),
-                        kind: Some("implements".to_string()),
-                        required_tier: Some("formal_kernel".to_string()),
-                        evidence: vec!["lake".to_string(), "kani".to_string()],
-                        ..Default::default()
-                    },
-                ],
+                controls: vec![OscalControlDeclaration {
+                    id: "SI-7(1)".to_string(),
+                    kind: Some("implements".to_string()),
+                    required_tier: Some("formal_kernel".to_string()),
+                    evidence: vec!["lake".to_string(), "kani".to_string()],
+                    ..Default::default()
+                }],
             },
             PackageMetadataInfo {
                 name: "app-service".to_string(),
@@ -4857,7 +5914,8 @@ edition = "2024"
             },
         ];
 
-        let report = verify_manifest_declarations(&pkgs, None, None).expect("validation should succeed");
+        let report =
+            verify_manifest_declarations(&pkgs, None, None).expect("validation should succeed");
         assert_eq!(report.total_declarations, 3);
         assert_eq!(report.unique_controls, 2);
         assert!(report.implements_by_control.contains_key("si-7.1"));
@@ -4867,23 +5925,24 @@ edition = "2024"
 
     #[test]
     fn test_invalid_declaration_kind_fails() {
-        let pkgs = vec![
-            PackageMetadataInfo {
-                name: "bad-pkg".to_string(),
-                manifest_path: PathBuf::from("crates/bad-pkg/Cargo.toml"),
-                controls: vec![
-                    OscalControlDeclaration {
-                        id: "AC-1".to_string(),
-                        kind: Some("invalid_kind_foo".to_string()),
-                        ..Default::default()
-                    },
-                ],
-            },
-        ];
+        let pkgs = vec![PackageMetadataInfo {
+            name: "bad-pkg".to_string(),
+            manifest_path: PathBuf::from("crates/bad-pkg/Cargo.toml"),
+            controls: vec![OscalControlDeclaration {
+                id: "AC-1".to_string(),
+                kind: Some("invalid_kind_foo".to_string()),
+                ..Default::default()
+            }],
+        }];
 
-        let errs = verify_manifest_declarations(&pkgs, None, None).expect_err("should reject invalid declaration_kind");
-        assert!(errs.iter().any(|e| e.contains("Invalid declaration_kind 'invalid_kind_foo'")),
-            "Expected invalid kind error, got: {:?}", errs);
+        let errs = verify_manifest_declarations(&pkgs, None, None)
+            .expect_err("should reject invalid declaration_kind");
+        assert!(
+            errs.iter()
+                .any(|e| e.contains("Invalid declaration_kind 'invalid_kind_foo'")),
+            "Expected invalid kind error, got: {:?}",
+            errs
+        );
     }
 
     #[test]
@@ -4892,75 +5951,91 @@ edition = "2024"
             PackageMetadataInfo {
                 name: "engine".to_string(),
                 manifest_path: PathBuf::from("crates/engine/Cargo.toml"),
-                controls: vec![
-                    OscalControlDeclaration {
-                        id: "SI-7(1)".to_string(),
-                        kind: Some("implements".to_string()),
-                        required_tier: Some("formal_kernel".to_string()),
-                        evidence: vec!["lake".to_string(), "kani".to_string()],
-                        ..Default::default()
-                    },
-                ],
+                controls: vec![OscalControlDeclaration {
+                    id: "SI-7(1)".to_string(),
+                    kind: Some("implements".to_string()),
+                    required_tier: Some("formal_kernel".to_string()),
+                    evidence: vec!["lake".to_string(), "kani".to_string()],
+                    ..Default::default()
+                }],
             },
             PackageMetadataInfo {
                 name: "consumer".to_string(),
                 manifest_path: PathBuf::from("crates/consumer/Cargo.toml"),
-                controls: vec![
-                    OscalControlDeclaration {
-                        id: "SI-7(1)".to_string(),
-                        kind: Some("requires".to_string()),
-                        required_tier: Some("formal_kernel".to_string()),
-                        ..Default::default()
-                    },
-                ],
+                controls: vec![OscalControlDeclaration {
+                    id: "SI-7(1)".to_string(),
+                    kind: Some("requires".to_string()),
+                    required_tier: Some("formal_kernel".to_string()),
+                    ..Default::default()
+                }],
             },
         ];
 
         let res = verify_manifest_declarations(&pkgs, None, None);
-        assert!(res.is_ok(), "Resolving requirement against in-workspace implementer must pass: {:?}", res);
+        assert!(
+            res.is_ok(),
+            "Resolving requirement against in-workspace implementer must pass: {:?}",
+            res
+        );
     }
 
     #[test]
     fn test_unresolved_requires_fails_e_oscal_010() {
-        let pkgs = vec![
-            PackageMetadataInfo {
-                name: "consumer".to_string(),
-                manifest_path: PathBuf::from("crates/consumer/Cargo.toml"),
-                controls: vec![
-                    OscalControlDeclaration {
-                        id: "SC-13".to_string(),
-                        kind: Some("requires".to_string()),
-                        required_tier: Some("formal_kernel".to_string()),
-                        ..Default::default()
-                    },
-                ],
-            },
-        ];
+        let pkgs = vec![PackageMetadataInfo {
+            name: "consumer".to_string(),
+            manifest_path: PathBuf::from("crates/consumer/Cargo.toml"),
+            controls: vec![OscalControlDeclaration {
+                id: "SC-13".to_string(),
+                kind: Some("requires".to_string()),
+                required_tier: Some("formal_kernel".to_string()),
+                ..Default::default()
+            }],
+        }];
 
-        let errs = verify_manifest_declarations(&pkgs, None, None).expect_err("unresolved requirement must fail");
-        assert!(errs.iter().any(|e| e.contains("[E-OSCAL-010]") && e.contains("Unresolved requirement")),
-            "E-OSCAL-010 must be triggered for unresolved requires: {:?}", errs);
+        let errs = verify_manifest_declarations(&pkgs, None, None)
+            .expect_err("unresolved requirement must fail");
+        assert!(
+            errs.iter()
+                .any(|e| e.contains("[E-OSCAL-010]") && e.contains("Unresolved requirement")),
+            "E-OSCAL-010 must be triggered for unresolved requires: {:?}",
+            errs
+        );
     }
 
     #[test]
     fn test_effective_required_tier_takes_max() {
         let declarations = vec![
-            ("pkg-a".to_string(), OscalControlDeclaration {
-                id: "custom-1".to_string(),
-                kind: Some("implements".to_string()),
-                required_tier: Some("test".to_string()),
-                ..Default::default()
-            }),
-            ("pkg-b".to_string(), OscalControlDeclaration {
-                id: "custom-1".to_string(),
-                kind: Some("requires".to_string()),
-                required_tier: Some("formal_kernel".to_string()),
-                ..Default::default()
-            }),
+            (
+                "pkg-a".to_string(),
+                OscalControlDeclaration {
+                    id: "custom-1".to_string(),
+                    kind: Some("implements".to_string()),
+                    required_tier: Some("test".to_string()),
+                    ..Default::default()
+                },
+            ),
+            (
+                "pkg-b".to_string(),
+                OscalControlDeclaration {
+                    id: "custom-1".to_string(),
+                    kind: Some("requires".to_string()),
+                    required_tier: Some("formal_kernel".to_string()),
+                    ..Default::default()
+                },
+            ),
         ];
 
-        let eff = calculate_effective_required_tier("custom-1", &declarations, EvidenceTier::StaticCheck, None);
-        assert_eq!(eff, EvidenceTier::FormalKernel, "Effective tier must take max across all declarations");
+        let eff = calculate_effective_required_tier(
+            "custom-1",
+            &declarations,
+            EvidenceTier::StaticCheck,
+            None,
+        );
+        assert_eq!(
+            eff,
+            EvidenceTier::FormalKernel,
+            "Effective tier must take max across all declarations"
+        );
     }
 
     #[test]
@@ -4969,33 +6044,34 @@ edition = "2024"
             PackageMetadataInfo {
                 name: "implementer-pkg".to_string(),
                 manifest_path: PathBuf::from("crates/implementer-pkg/Cargo.toml"),
-                controls: vec![
-                    OscalControlDeclaration {
-                        id: "custom-audit".to_string(),
-                        kind: Some("implements".to_string()),
-                        required_tier: Some("test".to_string()),
-                        evidence: vec!["cargo_test".to_string()],
-                        ..Default::default()
-                    },
-                ],
+                controls: vec![OscalControlDeclaration {
+                    id: "custom-audit".to_string(),
+                    kind: Some("implements".to_string()),
+                    required_tier: Some("test".to_string()),
+                    evidence: vec!["cargo_test".to_string()],
+                    ..Default::default()
+                }],
             },
             PackageMetadataInfo {
                 name: "consumer-pkg".to_string(),
                 manifest_path: PathBuf::from("crates/consumer-pkg/Cargo.toml"),
-                controls: vec![
-                    OscalControlDeclaration {
-                        id: "custom-audit".to_string(),
-                        kind: Some("requires".to_string()),
-                        required_tier: Some("formal_kernel".to_string()),
-                        ..Default::default()
-                    },
-                ],
+                controls: vec![OscalControlDeclaration {
+                    id: "custom-audit".to_string(),
+                    kind: Some("requires".to_string()),
+                    required_tier: Some("formal_kernel".to_string()),
+                    ..Default::default()
+                }],
             },
         ];
 
-        let errs = verify_manifest_declarations(&pkgs, None, None).expect_err("consumer demanding higher tier than implementer provides must fail");
-        assert!(errs.iter().any(|e| e.contains("[E-OSCAL-011]") && e.contains("Consumer tier mismatch")),
-            "E-OSCAL-011 must be triggered for consumer tier mismatch: {:?}", errs);
+        let errs = verify_manifest_declarations(&pkgs, None, None)
+            .expect_err("consumer demanding higher tier than implementer provides must fail");
+        assert!(
+            errs.iter()
+                .any(|e| e.contains("[E-OSCAL-011]") && e.contains("Consumer tier mismatch")),
+            "E-OSCAL-011 must be triggered for consumer tier mismatch: {:?}",
+            errs
+        );
     }
 
     #[test]
@@ -5004,27 +6080,23 @@ edition = "2024"
             PackageMetadataInfo {
                 name: "implementer-pkg".to_string(),
                 manifest_path: PathBuf::from("crates/implementer-pkg/Cargo.toml"),
-                controls: vec![
-                    OscalControlDeclaration {
-                        id: "custom-audit".to_string(),
-                        kind: Some("implements".to_string()),
-                        required_tier: Some("formal_kernel".to_string()),
-                        evidence: vec!["lake".to_string(), "lean".to_string()],
-                        ..Default::default()
-                    },
-                ],
+                controls: vec![OscalControlDeclaration {
+                    id: "custom-audit".to_string(),
+                    kind: Some("implements".to_string()),
+                    required_tier: Some("formal_kernel".to_string()),
+                    evidence: vec!["lake".to_string(), "lean".to_string()],
+                    ..Default::default()
+                }],
             },
             PackageMetadataInfo {
                 name: "consumer-pkg".to_string(),
                 manifest_path: PathBuf::from("crates/consumer-pkg/Cargo.toml"),
-                controls: vec![
-                    OscalControlDeclaration {
-                        id: "custom-audit".to_string(),
-                        kind: Some("requires".to_string()),
-                        required_tier: Some("formal_kernel".to_string()),
-                        ..Default::default()
-                    },
-                ],
+                controls: vec![OscalControlDeclaration {
+                    id: "custom-audit".to_string(),
+                    kind: Some("requires".to_string()),
+                    required_tier: Some("formal_kernel".to_string()),
+                    ..Default::default()
+                }],
             },
         ];
 
@@ -5038,46 +6110,51 @@ edition = "2024"
             PackageMetadataInfo {
                 name: "boundary-pkg".to_string(),
                 manifest_path: PathBuf::from("crates/boundary-pkg/Cargo.toml"),
-                controls: vec![
-                    OscalControlDeclaration {
-                        id: "PE-1".to_string(),
-                        kind: Some("inherited".to_string()),
-                        source: Some("aws_govcloud".to_string()),
-                        attestation_expiry: Some("2027-03-15T00:00:00Z".to_string()),
-                        ..Default::default()
-                    },
-                ],
+                controls: vec![OscalControlDeclaration {
+                    id: "PE-1".to_string(),
+                    kind: Some("inherited".to_string()),
+                    source: Some("aws_govcloud".to_string()),
+                    attestation_expiry: Some("2027-03-15T00:00:00Z".to_string()),
+                    ..Default::default()
+                }],
             },
             PackageMetadataInfo {
                 name: "consumer-pkg".to_string(),
                 manifest_path: PathBuf::from("crates/consumer-pkg/Cargo.toml"),
-                controls: vec![
-                    OscalControlDeclaration {
-                        id: "PE-1".to_string(),
-                        kind: Some("requires".to_string()),
-                        ..Default::default()
-                    },
-                ],
+                controls: vec![OscalControlDeclaration {
+                    id: "PE-1".to_string(),
+                    kind: Some("requires".to_string()),
+                    ..Default::default()
+                }],
             },
         ];
 
         let res = verify_manifest_declarations(&pkgs, None, None);
-        assert!(res.is_ok(), "Inherited declaration must satisfy requirement without requiring local evidence: {:?}", res);
+        assert!(
+            res.is_ok(),
+            "Inherited declaration must satisfy requirement without requiring local evidence: {:?}",
+            res
+        );
     }
 
     #[test]
     fn test_requires_satisfied_by_workspace_csp_inheritance() {
-        use oscal_engine::gate_policy::{GatePolicyConfigCatalog, GatePolicyConfigCatalogInheritanceValue};
+        use oscal_engine::gate_policy::{
+            GatePolicyConfigCatalog, GatePolicyConfigCatalogInheritanceValue,
+        };
         use std::collections::HashMap;
 
         let mut inheritance_map = HashMap::new();
-        inheritance_map.insert("aws_govcloud".to_string(), GatePolicyConfigCatalogInheritanceValue {
-            attestation_expiry: "2027-03-15T00:00:00Z".to_string(),
-            boundary_description: Some("AWS GovCloud P-ATO".to_string()),
-            controls: vec!["pe-3".to_string()],
-            leveraged_authorization_uuid: "e3b0c442-98fc-1c14-9afb-4c8996fb9242".to_string(),
-            title: "AWS GovCloud".to_string(),
-        });
+        inheritance_map.insert(
+            "aws_govcloud".to_string(),
+            GatePolicyConfigCatalogInheritanceValue {
+                attestation_expiry: "2027-03-15T00:00:00Z".to_string(),
+                boundary_description: Some("AWS GovCloud P-ATO".to_string()),
+                controls: vec!["pe-3".to_string()],
+                leveraged_authorization_uuid: "e3b0c442-98fc-1c14-9afb-4c8996fb9242".to_string(),
+                title: "AWS GovCloud".to_string(),
+            },
+        );
 
         let policy_toml = r#"
             [policy]
@@ -5099,36 +6176,36 @@ edition = "2024"
             ..Default::default()
         });
 
-        let pkgs = vec![
-            PackageMetadataInfo {
-                name: "consumer-pkg".to_string(),
-                manifest_path: PathBuf::from("crates/consumer-pkg/Cargo.toml"),
-                controls: vec![
-                    OscalControlDeclaration {
-                        id: "PE-3".to_string(),
-                        kind: Some("requires".to_string()),
-                        ..Default::default()
-                    },
-                ],
-            },
-        ];
+        let pkgs = vec![PackageMetadataInfo {
+            name: "consumer-pkg".to_string(),
+            manifest_path: PathBuf::from("crates/consumer-pkg/Cargo.toml"),
+            controls: vec![OscalControlDeclaration {
+                id: "PE-3".to_string(),
+                kind: Some("requires".to_string()),
+                ..Default::default()
+            }],
+        }];
 
         let res = verify_manifest_declarations(&pkgs, Some(&policy_cfg), None);
-        assert!(res.is_ok(), "Requires satisfied by policy CSP inheritance must pass: {:?}", res);
+        assert!(
+            res.is_ok(),
+            "Requires satisfied by policy CSP inheritance must pass: {:?}",
+            res
+        );
     }
 
     #[test]
     fn test_tailored_baseline_computes_c_tailored_and_denominator() {
+        use chrono::Utc;
+        use oscal_engine::gate_policy::{
+            GatePolicyConfig, GatePolicyConfigCatalog, GatePolicyConfigCatalogTailoring,
+        };
         use oscal_types::{
             AssessmentResults, ControlSelection, Finding, FindingTarget, ImportAp, Metadata,
             OscalAssessmentResultsDocument, Property, ResultItem, ReviewedControls,
             SelectControlById, TargetStatus,
         };
-        use chrono::Utc;
         use uuid::Uuid;
-        use oscal_engine::gate_policy::{
-            GatePolicyConfig, GatePolicyConfigCatalog, GatePolicyConfigCatalogTailoring,
-        };
 
         let now = Utc::now();
         let dummy_meta = Metadata {
@@ -5148,12 +6225,27 @@ edition = "2024"
             target: FindingTarget {
                 r#type: "component".to_string(),
                 target_id: "oscal-engine".to_string(),
-                status: TargetStatus { state: "satisfied".to_string(), reason: None },
+                status: TargetStatus {
+                    state: "satisfied".to_string(),
+                    reason: None,
+                },
             },
             props: vec![
-                Property { name: "control-id".to_string(), value: "AC-1".to_string(), ns: None },
-                Property { name: "component".to_string(), value: "oscal-engine".to_string(), ns: None },
-                Property { name: "tier-satisfied".to_string(), value: "true".to_string(), ns: None },
+                Property {
+                    name: "control-id".to_string(),
+                    value: "AC-1".to_string(),
+                    ns: None,
+                },
+                Property {
+                    name: "component".to_string(),
+                    value: "oscal-engine".to_string(),
+                    ns: None,
+                },
+                Property {
+                    name: "tier-satisfied".to_string(),
+                    value: "true".to_string(),
+                    ns: None,
+                },
             ],
             implementation_statement_uuid: None,
             related_observations: vec![],
@@ -5166,12 +6258,27 @@ edition = "2024"
             target: FindingTarget {
                 r#type: "component".to_string(),
                 target_id: "oscal-engine".to_string(),
-                status: TargetStatus { state: "satisfied".to_string(), reason: None },
+                status: TargetStatus {
+                    state: "satisfied".to_string(),
+                    reason: None,
+                },
             },
             props: vec![
-                Property { name: "control-id".to_string(), value: "AC-2".to_string(), ns: None },
-                Property { name: "component".to_string(), value: "oscal-engine".to_string(), ns: None },
-                Property { name: "tier-satisfied".to_string(), value: "true".to_string(), ns: None },
+                Property {
+                    name: "control-id".to_string(),
+                    value: "AC-2".to_string(),
+                    ns: None,
+                },
+                Property {
+                    name: "component".to_string(),
+                    value: "oscal-engine".to_string(),
+                    ns: None,
+                },
+                Property {
+                    name: "tier-satisfied".to_string(),
+                    value: "true".to_string(),
+                    ns: None,
+                },
             ],
             implementation_statement_uuid: None,
             related_observations: vec![],
@@ -5181,7 +6288,9 @@ edition = "2024"
             assessment_results: AssessmentResults {
                 uuid: Uuid::new_v4(),
                 metadata: dummy_meta,
-                import_ap: ImportAp { href: "urn:uuid:dummy".to_string() },
+                import_ap: ImportAp {
+                    href: "urn:uuid:dummy".to_string(),
+                },
                 results: vec![ResultItem {
                     uuid: Uuid::new_v4(),
                     title: "Test Execution".to_string(),
@@ -5192,8 +6301,12 @@ edition = "2024"
                     reviewed_controls: ReviewedControls {
                         control_selections: vec![ControlSelection {
                             include_controls: vec![
-                                SelectControlById { control_id: "ac-1".to_string() },
-                                SelectControlById { control_id: "ac-2".to_string() },
+                                SelectControlById {
+                                    control_id: "ac-1".to_string(),
+                                },
+                                SelectControlById {
+                                    control_id: "ac-2".to_string(),
+                                },
                             ],
                         }],
                     },
@@ -5220,33 +6333,48 @@ edition = "2024"
         policy_cfg.catalog = Some(GatePolicyConfigCatalog {
             baseline: Some("NIST_SP_800_53_Rev5".to_string()),
             tailoring: Some(GatePolicyConfigCatalogTailoring {
-                in_scope_controls: vec!["ac-1".to_string(), "ac-2".to_string(), "ia-1".to_string(), "ia-2".to_string()],
+                in_scope_controls: vec![
+                    "ac-1".to_string(),
+                    "ac-2".to_string(),
+                    "ia-1".to_string(),
+                    "ia-2".to_string(),
+                ],
                 ..Default::default()
             }),
             ..Default::default()
         });
 
-        let outcome = evaluate_gate_rules(&ar_doc, None, 0, Some(&policy_cfg), false).expect("evaluation runs");
+        let outcome = evaluate_gate_rules(&ar_doc, None, 0, Some(&policy_cfg), false)
+            .expect("evaluation runs");
         assert_eq!(outcome.telemetry.tailored_baseline_denominator, 4);
         assert_eq!(outcome.telemetry.tailored_baseline_numerator, 2);
         assert!((outcome.telemetry.tailored_baseline_coverage - 0.50).abs() < 1e-4);
-        assert!(outcome.violations.iter().any(|v| v.contains("Coverage 50.0% is below required minimum 100.0%")));
-        assert!(outcome.violations.iter().any(|v| v.contains("Control 'ia-1' in tailored baseline is unsatisfied")));
-        assert!(outcome.violations.iter().any(|v| v.contains("Control 'ia-2' in tailored baseline is unsatisfied")));
+        assert!(outcome
+            .violations
+            .iter()
+            .any(|v| v.contains("Coverage 50.0% is below required minimum 100.0%")));
+        assert!(outcome
+            .violations
+            .iter()
+            .any(|v| v.contains("Control 'ia-1' in tailored baseline is unsatisfied")));
+        assert!(outcome
+            .violations
+            .iter()
+            .any(|v| v.contains("Control 'ia-2' in tailored baseline is unsatisfied")));
     }
 
     #[test]
     fn test_excluded_control_omitted_from_denominator() {
+        use chrono::Utc;
+        use oscal_engine::gate_policy::{
+            GatePolicyConfig, GatePolicyConfigCatalog, GatePolicyConfigCatalogTailoring,
+        };
         use oscal_types::{
             AssessmentResults, ControlSelection, Finding, FindingTarget, ImportAp, Metadata,
             OscalAssessmentResultsDocument, Property, ResultItem, ReviewedControls,
             SelectControlById, TargetStatus,
         };
-        use chrono::Utc;
         use uuid::Uuid;
-        use oscal_engine::gate_policy::{
-            GatePolicyConfig, GatePolicyConfigCatalog, GatePolicyConfigCatalogTailoring,
-        };
 
         let now = Utc::now();
         let dummy_meta = Metadata {
@@ -5265,12 +6393,27 @@ edition = "2024"
             target: FindingTarget {
                 r#type: "component".to_string(),
                 target_id: "oscal-engine".to_string(),
-                status: TargetStatus { state: "satisfied".to_string(), reason: None },
+                status: TargetStatus {
+                    state: "satisfied".to_string(),
+                    reason: None,
+                },
             },
             props: vec![
-                Property { name: "control-id".to_string(), value: "AC-1".to_string(), ns: None },
-                Property { name: "component".to_string(), value: "oscal-engine".to_string(), ns: None },
-                Property { name: "tier-satisfied".to_string(), value: "true".to_string(), ns: None },
+                Property {
+                    name: "control-id".to_string(),
+                    value: "AC-1".to_string(),
+                    ns: None,
+                },
+                Property {
+                    name: "component".to_string(),
+                    value: "oscal-engine".to_string(),
+                    ns: None,
+                },
+                Property {
+                    name: "tier-satisfied".to_string(),
+                    value: "true".to_string(),
+                    ns: None,
+                },
             ],
             implementation_statement_uuid: None,
             related_observations: vec![],
@@ -5280,7 +6423,9 @@ edition = "2024"
             assessment_results: AssessmentResults {
                 uuid: Uuid::new_v4(),
                 metadata: dummy_meta,
-                import_ap: ImportAp { href: "urn:uuid:dummy".to_string() },
+                import_ap: ImportAp {
+                    href: "urn:uuid:dummy".to_string(),
+                },
                 results: vec![ResultItem {
                     uuid: Uuid::new_v4(),
                     title: "Test Execution".to_string(),
@@ -5290,7 +6435,9 @@ edition = "2024"
                     props: vec![],
                     reviewed_controls: ReviewedControls {
                         control_selections: vec![ControlSelection {
-                            include_controls: vec![SelectControlById { control_id: "ac-1".to_string() }],
+                            include_controls: vec![SelectControlById {
+                                control_id: "ac-1".to_string(),
+                            }],
                         }],
                     },
                     observations: vec![],
@@ -5323,27 +6470,37 @@ edition = "2024"
             ..Default::default()
         });
 
-        let outcome = evaluate_gate_rules(&ar_doc, None, 0, Some(&policy_cfg), false).expect("evaluation runs");
+        let outcome = evaluate_gate_rules(&ar_doc, None, 0, Some(&policy_cfg), false)
+            .expect("evaluation runs");
         // Denominator must be 1 (only ac-1 is in scope; ac-2 was excluded and is not counted)
         assert_eq!(outcome.telemetry.tailored_baseline_denominator, 1);
         assert_eq!(outcome.telemetry.tailored_baseline_numerator, 1);
         assert!((outcome.telemetry.tailored_baseline_coverage - 1.0).abs() < 1e-4);
-        assert!(outcome.violations.is_empty(), "Excluded control is not in denominator and does not trigger violation: {:?}", outcome.violations);
+        assert!(
+            outcome.violations.is_empty(),
+            "Excluded control is not in denominator and does not trigger violation: {:?}",
+            outcome.violations
+        );
     }
 
     #[test]
     fn test_active_inheritance_satisfies_requires_without_local_implementer() {
-        use oscal_engine::gate_policy::{GatePolicyConfig, GatePolicyConfigCatalog, GatePolicyConfigCatalogInheritanceValue};
+        use oscal_engine::gate_policy::{
+            GatePolicyConfig, GatePolicyConfigCatalog, GatePolicyConfigCatalogInheritanceValue,
+        };
         use std::collections::HashMap;
 
         let mut inheritance = HashMap::new();
-        inheritance.insert("aws_govcloud".to_string(), GatePolicyConfigCatalogInheritanceValue {
-            attestation_expiry: "2030-01-01T00:00:00Z".to_string(),
-            boundary_description: Some("AWS GovCloud P-ATO".to_string()),
-            controls: vec!["pe-3".to_string()],
-            leveraged_authorization_uuid: "e3b0c442-98fc-1c14-9afb-4c8996fb9242".to_string(),
-            title: "AWS GovCloud".to_string(),
-        });
+        inheritance.insert(
+            "aws_govcloud".to_string(),
+            GatePolicyConfigCatalogInheritanceValue {
+                attestation_expiry: "2030-01-01T00:00:00Z".to_string(),
+                boundary_description: Some("AWS GovCloud P-ATO".to_string()),
+                controls: vec!["pe-3".to_string()],
+                leveraged_authorization_uuid: "e3b0c442-98fc-1c14-9afb-4c8996fb9242".to_string(),
+                title: "AWS GovCloud".to_string(),
+            },
+        );
 
         let policy_toml = r#"
             [policy]
@@ -5365,39 +6522,44 @@ edition = "2024"
             ..Default::default()
         });
 
-        let pkgs = vec![
-            PackageMetadataInfo {
-                name: "consumer-pkg".to_string(),
-                manifest_path: PathBuf::from("crates/consumer-pkg/Cargo.toml"),
-                controls: vec![
-                    OscalControlDeclaration {
-                        id: "pe-3".to_string(),
-                        kind: Some("requires".to_string()),
-                        ..Default::default()
-                    },
-                ],
-            },
-        ];
+        let pkgs = vec![PackageMetadataInfo {
+            name: "consumer-pkg".to_string(),
+            manifest_path: PathBuf::from("crates/consumer-pkg/Cargo.toml"),
+            controls: vec![OscalControlDeclaration {
+                id: "pe-3".to_string(),
+                kind: Some("requires".to_string()),
+                ..Default::default()
+            }],
+        }];
 
         let res = verify_manifest_declarations(&pkgs, Some(&policy_cfg), None);
-        assert!(res.is_ok(), "Active CSP inheritance must satisfy 'requires' without local crate implementer: {:?}", res);
+        assert!(
+            res.is_ok(),
+            "Active CSP inheritance must satisfy 'requires' without local crate implementer: {:?}",
+            res
+        );
     }
 
     #[test]
     fn test_expired_csp_inheritance_fails_requires_resolution_e_oscal_010() {
-        use oscal_engine::gate_policy::{GatePolicyConfig, GatePolicyConfigCatalog, GatePolicyConfigCatalogInheritanceValue};
         use chrono::{TimeZone, Utc};
+        use oscal_engine::gate_policy::{
+            GatePolicyConfig, GatePolicyConfigCatalog, GatePolicyConfigCatalogInheritanceValue,
+        };
         use std::collections::HashMap;
 
         let injected_now = Utc.with_ymd_and_hms(2026, 11, 10, 12, 0, 0).unwrap();
         let mut inheritance = HashMap::new();
-        inheritance.insert("aws_govcloud".to_string(), GatePolicyConfigCatalogInheritanceValue {
-            attestation_expiry: "2024-01-01T00:00:00Z".to_string(),
-            boundary_description: Some("AWS GovCloud P-ATO".to_string()),
-            controls: vec!["pe-3".to_string()],
-            leveraged_authorization_uuid: "e3b0c442-98fc-1c14-9afb-4c8996fb9242".to_string(),
-            title: "AWS GovCloud".to_string(),
-        });
+        inheritance.insert(
+            "aws_govcloud".to_string(),
+            GatePolicyConfigCatalogInheritanceValue {
+                attestation_expiry: "2024-01-01T00:00:00Z".to_string(),
+                boundary_description: Some("AWS GovCloud P-ATO".to_string()),
+                controls: vec!["pe-3".to_string()],
+                leveraged_authorization_uuid: "e3b0c442-98fc-1c14-9afb-4c8996fb9242".to_string(),
+                title: "AWS GovCloud".to_string(),
+            },
+        );
 
         let policy_toml = r#"
             [policy]
@@ -5419,39 +6581,45 @@ edition = "2024"
             ..Default::default()
         });
 
-        let pkgs = vec![
-            PackageMetadataInfo {
-                name: "consumer-pkg".to_string(),
-                manifest_path: PathBuf::from("crates/consumer-pkg/Cargo.toml"),
-                controls: vec![
-                    OscalControlDeclaration {
-                        id: "pe-3".to_string(),
-                        kind: Some("requires".to_string()),
-                        ..Default::default()
-                    },
-                ],
-            },
-        ];
+        let pkgs = vec![PackageMetadataInfo {
+            name: "consumer-pkg".to_string(),
+            manifest_path: PathBuf::from("crates/consumer-pkg/Cargo.toml"),
+            controls: vec![OscalControlDeclaration {
+                id: "pe-3".to_string(),
+                kind: Some("requires".to_string()),
+                ..Default::default()
+            }],
+        }];
 
-        let errs = verify_manifest_declarations_with_clock(&pkgs, Some(&policy_cfg), None, Some(injected_now))
-            .expect_err("Expired CSP inheritance must not satisfy requires declaration");
-        assert!(errs.iter().any(|e| e.contains("[E-OSCAL-010]") && e.contains("pe-3")),
-            "E-OSCAL-010 must trigger when only inheritance source is expired: {:?}", errs);
+        let errs = verify_manifest_declarations_with_clock(
+            &pkgs,
+            Some(&policy_cfg),
+            None,
+            Some(injected_now),
+        )
+        .expect_err("Expired CSP inheritance must not satisfy requires declaration");
+        assert!(
+            errs.iter()
+                .any(|e| e.contains("[E-OSCAL-010]") && e.contains("pe-3")),
+            "E-OSCAL-010 must trigger when only inheritance source is expired: {:?}",
+            errs
+        );
     }
 
     #[test]
     fn test_inherited_external_controls_count_in_numerator() {
+        use chrono::Utc;
+        use oscal_engine::gate_policy::{
+            GatePolicyConfig, GatePolicyConfigCatalog, GatePolicyConfigCatalogInheritanceValue,
+            GatePolicyConfigCatalogTailoring,
+        };
         use oscal_types::{
             AssessmentResults, ControlSelection, Finding, FindingTarget, ImportAp, Metadata,
             OscalAssessmentResultsDocument, Property, ResultItem, ReviewedControls,
             SelectControlById, TargetStatus,
         };
-        use chrono::Utc;
-        use uuid::Uuid;
-        use oscal_engine::gate_policy::{
-            GatePolicyConfig, GatePolicyConfigCatalog, GatePolicyConfigCatalogInheritanceValue, GatePolicyConfigCatalogTailoring,
-        };
         use std::collections::HashMap;
+        use uuid::Uuid;
 
         let now = Utc::now();
         let dummy_meta = Metadata {
@@ -5471,12 +6639,27 @@ edition = "2024"
             target: FindingTarget {
                 r#type: "component".to_string(),
                 target_id: "oscal-engine".to_string(),
-                status: TargetStatus { state: "satisfied".to_string(), reason: None },
+                status: TargetStatus {
+                    state: "satisfied".to_string(),
+                    reason: None,
+                },
             },
             props: vec![
-                Property { name: "control-id".to_string(), value: "AC-1".to_string(), ns: None },
-                Property { name: "component".to_string(), value: "oscal-engine".to_string(), ns: None },
-                Property { name: "tier-satisfied".to_string(), value: "true".to_string(), ns: None },
+                Property {
+                    name: "control-id".to_string(),
+                    value: "AC-1".to_string(),
+                    ns: None,
+                },
+                Property {
+                    name: "component".to_string(),
+                    value: "oscal-engine".to_string(),
+                    ns: None,
+                },
+                Property {
+                    name: "tier-satisfied".to_string(),
+                    value: "true".to_string(),
+                    ns: None,
+                },
             ],
             implementation_statement_uuid: None,
             related_observations: vec![],
@@ -5486,7 +6669,9 @@ edition = "2024"
             assessment_results: AssessmentResults {
                 uuid: Uuid::new_v4(),
                 metadata: dummy_meta,
-                import_ap: ImportAp { href: "urn:uuid:dummy".to_string() },
+                import_ap: ImportAp {
+                    href: "urn:uuid:dummy".to_string(),
+                },
                 results: vec![ResultItem {
                     uuid: Uuid::new_v4(),
                     title: "Test Execution".to_string(),
@@ -5496,7 +6681,9 @@ edition = "2024"
                     props: vec![],
                     reviewed_controls: ReviewedControls {
                         control_selections: vec![ControlSelection {
-                            include_controls: vec![SelectControlById { control_id: "ac-1".to_string() }],
+                            include_controls: vec![SelectControlById {
+                                control_id: "ac-1".to_string(),
+                            }],
                         }],
                     },
                     observations: vec![],
@@ -5506,13 +6693,16 @@ edition = "2024"
         };
 
         let mut inheritance = HashMap::new();
-        inheritance.insert("aws_govcloud".to_string(), GatePolicyConfigCatalogInheritanceValue {
-            attestation_expiry: "2030-01-01T00:00:00Z".to_string(),
-            boundary_description: Some("AWS GovCloud P-ATO".to_string()),
-            controls: vec!["pe-3".to_string()],
-            leveraged_authorization_uuid: "e3b0c442-98fc-1c14-9afb-4c8996fb9242".to_string(),
-            title: "AWS GovCloud".to_string(),
-        });
+        inheritance.insert(
+            "aws_govcloud".to_string(),
+            GatePolicyConfigCatalogInheritanceValue {
+                attestation_expiry: "2030-01-01T00:00:00Z".to_string(),
+                boundary_description: Some("AWS GovCloud P-ATO".to_string()),
+                controls: vec!["pe-3".to_string()],
+                leveraged_authorization_uuid: "e3b0c442-98fc-1c14-9afb-4c8996fb9242".to_string(),
+                title: "AWS GovCloud".to_string(),
+            },
+        );
 
         let policy_toml = r#"
             [policy]
@@ -5538,32 +6728,42 @@ edition = "2024"
             ..Default::default()
         });
 
-        let outcome = evaluate_gate_rules(&ar_doc, None, 0, Some(&policy_cfg), false).expect("evaluation runs");
+        let outcome = evaluate_gate_rules(&ar_doc, None, 0, Some(&policy_cfg), false)
+            .expect("evaluation runs");
         // Unified satisfaction: ac-1 satisfied in workspace + pe-3 satisfied via active CSP inheritance = 2/2 = 100%
         assert_eq!(outcome.telemetry.tailored_baseline_denominator, 2);
         assert_eq!(outcome.telemetry.tailored_baseline_numerator, 2);
         assert!((outcome.telemetry.tailored_baseline_coverage - 1.0).abs() < 1e-4);
-        assert!(outcome.violations.is_empty(), "Gate passes when external inherited control satisfies tailored baseline: {:?}", outcome.violations);
-        assert_eq!(outcome.telemetry.control_dispositions.get("ac-1"), Some(&ControlDisposition::Workspace {
-            component: "oscal-engine".to_string(),
-            achieved_tier: EvidenceTier::Test,
-        }));
-        assert_eq!(outcome.telemetry.control_dispositions.get("pe-3"), Some(&ControlDisposition::Inherited {
-            source_id: "aws_govcloud".to_string(),
-        }));
+        assert!(
+            outcome.violations.is_empty(),
+            "Gate passes when external inherited control satisfies tailored baseline: {:?}",
+            outcome.violations
+        );
+        assert_eq!(
+            outcome.telemetry.control_dispositions.get("ac-1"),
+            Some(&ControlDisposition::Workspace {
+                component: "oscal-engine".to_string(),
+                achieved_tier: EvidenceTier::Test,
+            })
+        );
+        assert_eq!(
+            outcome.telemetry.control_dispositions.get("pe-3"),
+            Some(&ControlDisposition::Inherited {
+                source_id: "aws_govcloud".to_string(),
+            })
+        );
     }
 
     #[test]
     fn test_expired_inheritance_triggers_e_oscal_012_and_poam_synthesis() {
-        use oscal_types::{
-            AssessmentResults, ImportAp, Metadata, OscalAssessmentResultsDocument,
-        };
         use chrono::{TimeZone, Utc};
-        use uuid::Uuid;
         use oscal_engine::gate_policy::{
-            GatePolicyConfig, GatePolicyConfigCatalog, GatePolicyConfigCatalogInheritanceValue, GatePolicyConfigCatalogTailoring,
+            GatePolicyConfig, GatePolicyConfigCatalog, GatePolicyConfigCatalogInheritanceValue,
+            GatePolicyConfigCatalogTailoring,
         };
+        use oscal_types::{AssessmentResults, ImportAp, Metadata, OscalAssessmentResultsDocument};
         use std::collections::HashMap;
+        use uuid::Uuid;
 
         let injected_now = Utc.with_ymd_and_hms(2026, 11, 10, 12, 0, 0).unwrap();
         let dummy_meta = Metadata {
@@ -5580,19 +6780,24 @@ edition = "2024"
             assessment_results: AssessmentResults {
                 uuid: Uuid::new_v4(),
                 metadata: dummy_meta,
-                import_ap: ImportAp { href: "urn:uuid:dummy".to_string() },
+                import_ap: ImportAp {
+                    href: "urn:uuid:dummy".to_string(),
+                },
                 results: vec![],
             },
         };
 
         let mut inheritance = HashMap::new();
-        inheritance.insert("aws_govcloud".to_string(), GatePolicyConfigCatalogInheritanceValue {
-            attestation_expiry: "2024-06-01T00:00:00Z".to_string(),
-            boundary_description: Some("AWS GovCloud P-ATO".to_string()),
-            controls: vec!["pe-3".to_string()],
-            leveraged_authorization_uuid: "e3b0c442-98fc-1c14-9afb-4c8996fb9242".to_string(),
-            title: "AWS GovCloud".to_string(),
-        });
+        inheritance.insert(
+            "aws_govcloud".to_string(),
+            GatePolicyConfigCatalogInheritanceValue {
+                attestation_expiry: "2024-06-01T00:00:00Z".to_string(),
+                boundary_description: Some("AWS GovCloud P-ATO".to_string()),
+                controls: vec!["pe-3".to_string()],
+                leveraged_authorization_uuid: "e3b0c442-98fc-1c14-9afb-4c8996fb9242".to_string(),
+                title: "AWS GovCloud".to_string(),
+            },
+        );
 
         let policy_toml = r#"
             [policy]
@@ -5625,30 +6830,47 @@ edition = "2024"
             Some(&policy_cfg),
             false,
             Some(injected_now),
-        ).expect("evaluation runs");
+        )
+        .expect("evaluation runs");
 
         // Fails closed with E-OSCAL-012
-        assert!(outcome.violations.iter().any(|v| v.contains("[E-OSCAL-012]") && v.contains("pe-3") && v.contains("aws_govcloud")));
+        assert!(outcome
+            .violations
+            .iter()
+            .any(|v| v.contains("[E-OSCAL-012]")
+                && v.contains("pe-3")
+                && v.contains("aws_govcloud")));
         // Synthesizes exactly 1 deterministic POA&M item
         assert_eq!(outcome.synthesized_poam_items.len(), 1);
         let poam_item = &outcome.synthesized_poam_items[0];
-        assert!(poam_item.props.iter().any(|p| p.name == "status" && p.value == "inherited-pending-attestation"));
-        assert!(poam_item.props.iter().any(|p| p.name == "control-id" && p.value == "pe-3"));
-        assert!(poam_item.props.iter().any(|p| p.name == "inheritance-source" && p.value == "aws_govcloud"));
-        assert_eq!(outcome.telemetry.control_dispositions.get("pe-3"), Some(&ControlDisposition::Unsatisfied));
+        assert!(poam_item
+            .props
+            .iter()
+            .any(|p| p.name == "status" && p.value == "inherited-pending-attestation"));
+        assert!(poam_item
+            .props
+            .iter()
+            .any(|p| p.name == "control-id" && p.value == "pe-3"));
+        assert!(poam_item
+            .props
+            .iter()
+            .any(|p| p.name == "inheritance-source" && p.value == "aws_govcloud"));
+        assert_eq!(
+            outcome.telemetry.control_dispositions.get("pe-3"),
+            Some(&ControlDisposition::Unsatisfied)
+        );
     }
 
     #[test]
     fn test_multiple_expired_sources_produce_expected_poam_items() {
-        use oscal_types::{
-            AssessmentResults, ImportAp, Metadata, OscalAssessmentResultsDocument,
-        };
         use chrono::{TimeZone, Utc};
-        use uuid::Uuid;
         use oscal_engine::gate_policy::{
-            GatePolicyConfig, GatePolicyConfigCatalog, GatePolicyConfigCatalogInheritanceValue, GatePolicyConfigCatalogTailoring,
+            GatePolicyConfig, GatePolicyConfigCatalog, GatePolicyConfigCatalogInheritanceValue,
+            GatePolicyConfigCatalogTailoring,
         };
+        use oscal_types::{AssessmentResults, ImportAp, Metadata, OscalAssessmentResultsDocument};
         use std::collections::HashMap;
+        use uuid::Uuid;
 
         let injected_now = Utc.with_ymd_and_hms(2026, 11, 10, 12, 0, 0).unwrap();
         let dummy_meta = Metadata {
@@ -5664,26 +6886,34 @@ edition = "2024"
             assessment_results: AssessmentResults {
                 uuid: Uuid::new_v4(),
                 metadata: dummy_meta,
-                import_ap: ImportAp { href: "urn:uuid:dummy".to_string() },
+                import_ap: ImportAp {
+                    href: "urn:uuid:dummy".to_string(),
+                },
                 results: vec![],
             },
         };
 
         let mut inheritance = HashMap::new();
-        inheritance.insert("aws_govcloud".to_string(), GatePolicyConfigCatalogInheritanceValue {
-            attestation_expiry: "2024-06-01T00:00:00Z".to_string(),
-            boundary_description: Some("AWS GovCloud P-ATO".to_string()),
-            controls: vec!["pe-3".to_string()],
-            leveraged_authorization_uuid: "e3b0c442-98fc-1c14-9afb-4c8996fb9242".to_string(),
-            title: "AWS GovCloud".to_string(),
-        });
-        inheritance.insert("azure_gov".to_string(), GatePolicyConfigCatalogInheritanceValue {
-            attestation_expiry: "2025-01-01T00:00:00Z".to_string(),
-            boundary_description: Some("Azure Government P-ATO".to_string()),
-            controls: vec!["pe-4".to_string()],
-            leveraged_authorization_uuid: "c3b0c442-98fc-1c14-9afb-4c8996fb9243".to_string(),
-            title: "Azure Government".to_string(),
-        });
+        inheritance.insert(
+            "aws_govcloud".to_string(),
+            GatePolicyConfigCatalogInheritanceValue {
+                attestation_expiry: "2024-06-01T00:00:00Z".to_string(),
+                boundary_description: Some("AWS GovCloud P-ATO".to_string()),
+                controls: vec!["pe-3".to_string()],
+                leveraged_authorization_uuid: "e3b0c442-98fc-1c14-9afb-4c8996fb9242".to_string(),
+                title: "AWS GovCloud".to_string(),
+            },
+        );
+        inheritance.insert(
+            "azure_gov".to_string(),
+            GatePolicyConfigCatalogInheritanceValue {
+                attestation_expiry: "2025-01-01T00:00:00Z".to_string(),
+                boundary_description: Some("Azure Government P-ATO".to_string()),
+                controls: vec!["pe-4".to_string()],
+                leveraged_authorization_uuid: "c3b0c442-98fc-1c14-9afb-4c8996fb9243".to_string(),
+                title: "Azure Government".to_string(),
+            },
+        );
 
         let policy_toml = r#"
             [policy]
@@ -5716,24 +6946,32 @@ edition = "2024"
             Some(&policy_cfg),
             false,
             Some(injected_now),
-        ).expect("evaluation runs");
+        )
+        .expect("evaluation runs");
 
         assert_eq!(outcome.synthesized_poam_items.len(), 2);
-        let uuids: std::collections::HashSet<Uuid> = outcome.synthesized_poam_items.iter().map(|p| p.uuid).collect();
-        assert_eq!(uuids.len(), 2, "Synthesized POA&M items must have distinct UUIDs");
+        let uuids: std::collections::HashSet<Uuid> = outcome
+            .synthesized_poam_items
+            .iter()
+            .map(|p| p.uuid)
+            .collect();
+        assert_eq!(
+            uuids.len(),
+            2,
+            "Synthesized POA&M items must have distinct UUIDs"
+        );
     }
 
     #[test]
     fn test_clock_injection_determines_expiry_byte_identically() {
-        use oscal_types::{
-            AssessmentResults, ImportAp, Metadata, OscalAssessmentResultsDocument,
-        };
         use chrono::{TimeZone, Utc};
-        use uuid::Uuid;
         use oscal_engine::gate_policy::{
-            GatePolicyConfig, GatePolicyConfigCatalog, GatePolicyConfigCatalogInheritanceValue, GatePolicyConfigCatalogTailoring,
+            GatePolicyConfig, GatePolicyConfigCatalog, GatePolicyConfigCatalogInheritanceValue,
+            GatePolicyConfigCatalogTailoring,
         };
+        use oscal_types::{AssessmentResults, ImportAp, Metadata, OscalAssessmentResultsDocument};
         use std::collections::HashMap;
+        use uuid::Uuid;
 
         let injected_past = Utc.with_ymd_and_hms(2023, 1, 1, 0, 0, 0).unwrap();
         let injected_future = Utc.with_ymd_and_hms(2026, 1, 1, 0, 0, 0).unwrap();
@@ -5750,19 +6988,24 @@ edition = "2024"
             assessment_results: AssessmentResults {
                 uuid: Uuid::new_v4(),
                 metadata: dummy_meta,
-                import_ap: ImportAp { href: "urn:uuid:dummy".to_string() },
+                import_ap: ImportAp {
+                    href: "urn:uuid:dummy".to_string(),
+                },
                 results: vec![],
             },
         };
 
         let mut inheritance = HashMap::new();
-        inheritance.insert("aws_govcloud".to_string(), GatePolicyConfigCatalogInheritanceValue {
-            attestation_expiry: "2025-06-01T00:00:00Z".to_string(),
-            boundary_description: Some("AWS GovCloud P-ATO".to_string()),
-            controls: vec!["pe-3".to_string()],
-            leveraged_authorization_uuid: "e3b0c442-98fc-1c14-9afb-4c8996fb9242".to_string(),
-            title: "AWS GovCloud".to_string(),
-        });
+        inheritance.insert(
+            "aws_govcloud".to_string(),
+            GatePolicyConfigCatalogInheritanceValue {
+                attestation_expiry: "2025-06-01T00:00:00Z".to_string(),
+                boundary_description: Some("AWS GovCloud P-ATO".to_string()),
+                controls: vec!["pe-3".to_string()],
+                leveraged_authorization_uuid: "e3b0c442-98fc-1c14-9afb-4c8996fb9242".to_string(),
+                title: "AWS GovCloud".to_string(),
+            },
+        );
 
         let policy_toml = r#"
             [policy]
@@ -5796,8 +7039,13 @@ edition = "2024"
             Some(&policy_cfg),
             false,
             Some(injected_past),
-        ).expect("eval");
-        assert!(outcome_past.violations.is_empty(), "When clock is before expiry, inheritance is active: {:?}", outcome_past.violations);
+        )
+        .expect("eval");
+        assert!(
+            outcome_past.violations.is_empty(),
+            "When clock is before expiry, inheritance is active: {:?}",
+            outcome_past.violations
+        );
         assert_eq!(outcome_past.telemetry.tailored_baseline_numerator, 1);
 
         // 2. Injected clock in 2026 (after 2025 expiry): expired inheritance, gate fails closed
@@ -5808,7 +7056,8 @@ edition = "2024"
             Some(&policy_cfg),
             false,
             Some(injected_future),
-        ).expect("eval");
+        )
+        .expect("eval");
         let outcome_future2 = evaluate_gate_rules_with_clock(
             &ar_doc,
             None,
@@ -5816,9 +7065,13 @@ edition = "2024"
             Some(&policy_cfg),
             false,
             Some(injected_future),
-        ).expect("eval");
+        )
+        .expect("eval");
 
-        assert!(!outcome_future1.violations.is_empty(), "When clock is after expiry, gate must fail");
+        assert!(
+            !outcome_future1.violations.is_empty(),
+            "When clock is after expiry, gate must fail"
+        );
         assert_eq!(outcome_future1.violations, outcome_future2.violations);
         assert_eq!(
             outcome_future1.synthesized_poam_items[0].uuid,
@@ -5829,17 +7082,18 @@ edition = "2024"
 
     #[test]
     fn test_numerator_denominator_telemetry_matches_dispositions() {
+        use chrono::Utc;
+        use oscal_engine::gate_policy::{
+            GatePolicyConfig, GatePolicyConfigCatalog, GatePolicyConfigCatalogInheritanceValue,
+            GatePolicyConfigCatalogTailoring,
+        };
         use oscal_types::{
             AssessmentResults, ControlSelection, Finding, FindingTarget, ImportAp, Metadata,
             OscalAssessmentResultsDocument, Property, ResultItem, ReviewedControls,
             SelectControlById, TargetStatus,
         };
-        use chrono::Utc;
-        use uuid::Uuid;
-        use oscal_engine::gate_policy::{
-            GatePolicyConfig, GatePolicyConfigCatalog, GatePolicyConfigCatalogInheritanceValue, GatePolicyConfigCatalogTailoring,
-        };
         use std::collections::HashMap;
+        use uuid::Uuid;
 
         let now = Utc::now();
         let dummy_meta = Metadata {
@@ -5859,12 +7113,27 @@ edition = "2024"
             target: FindingTarget {
                 r#type: "component".to_string(),
                 target_id: "oscal-engine".to_string(),
-                status: TargetStatus { state: "satisfied".to_string(), reason: None },
+                status: TargetStatus {
+                    state: "satisfied".to_string(),
+                    reason: None,
+                },
             },
             props: vec![
-                Property { name: "control-id".to_string(), value: "AC-1".to_string(), ns: None },
-                Property { name: "component".to_string(), value: "oscal-engine".to_string(), ns: None },
-                Property { name: "tier-satisfied".to_string(), value: "true".to_string(), ns: None },
+                Property {
+                    name: "control-id".to_string(),
+                    value: "AC-1".to_string(),
+                    ns: None,
+                },
+                Property {
+                    name: "component".to_string(),
+                    value: "oscal-engine".to_string(),
+                    ns: None,
+                },
+                Property {
+                    name: "tier-satisfied".to_string(),
+                    value: "true".to_string(),
+                    ns: None,
+                },
             ],
             implementation_statement_uuid: None,
             related_observations: vec![],
@@ -5874,7 +7143,9 @@ edition = "2024"
             assessment_results: AssessmentResults {
                 uuid: Uuid::new_v4(),
                 metadata: dummy_meta,
-                import_ap: ImportAp { href: "urn:uuid:dummy".to_string() },
+                import_ap: ImportAp {
+                    href: "urn:uuid:dummy".to_string(),
+                },
                 results: vec![ResultItem {
                     uuid: Uuid::new_v4(),
                     title: "Test Execution".to_string(),
@@ -5884,7 +7155,9 @@ edition = "2024"
                     props: vec![],
                     reviewed_controls: ReviewedControls {
                         control_selections: vec![ControlSelection {
-                            include_controls: vec![SelectControlById { control_id: "ac-1".to_string() }],
+                            include_controls: vec![SelectControlById {
+                                control_id: "ac-1".to_string(),
+                            }],
                         }],
                     },
                     observations: vec![],
@@ -5895,13 +7168,16 @@ edition = "2024"
 
         // pe-3 is satisfied via active inheritance
         let mut inheritance = HashMap::new();
-        inheritance.insert("aws_govcloud".to_string(), GatePolicyConfigCatalogInheritanceValue {
-            attestation_expiry: "2030-01-01T00:00:00Z".to_string(),
-            boundary_description: Some("AWS GovCloud P-ATO".to_string()),
-            controls: vec!["pe-3".to_string()],
-            leveraged_authorization_uuid: "e3b0c442-98fc-1c14-9afb-4c8996fb9242".to_string(),
-            title: "AWS GovCloud".to_string(),
-        });
+        inheritance.insert(
+            "aws_govcloud".to_string(),
+            GatePolicyConfigCatalogInheritanceValue {
+                attestation_expiry: "2030-01-01T00:00:00Z".to_string(),
+                boundary_description: Some("AWS GovCloud P-ATO".to_string()),
+                controls: vec!["pe-3".to_string()],
+                leveraged_authorization_uuid: "e3b0c442-98fc-1c14-9afb-4c8996fb9242".to_string(),
+                title: "AWS GovCloud".to_string(),
+            },
+        );
 
         // ia-2 is unsatisfied
         let policy_toml = r#"
@@ -5928,32 +7204,44 @@ edition = "2024"
             ..Default::default()
         });
 
-        let outcome = evaluate_gate_rules(&ar_doc, None, 0, Some(&policy_cfg), false).expect("eval");
+        let outcome =
+            evaluate_gate_rules(&ar_doc, None, 0, Some(&policy_cfg), false).expect("eval");
         assert_eq!(outcome.telemetry.tailored_baseline_denominator, 3);
         assert_eq!(outcome.telemetry.tailored_baseline_numerator, 2);
         assert!((outcome.telemetry.tailored_baseline_coverage - (2.0 / 3.0)).abs() < 1e-4);
 
         let dispositions = &outcome.telemetry.control_dispositions;
         assert_eq!(dispositions.len(), 3);
-        assert!(matches!(dispositions.get("ac-1"), Some(ControlDisposition::Workspace { .. })));
-        assert!(matches!(dispositions.get("pe-3"), Some(ControlDisposition::Inherited { .. })));
-        assert_eq!(dispositions.get("ia-2"), Some(&ControlDisposition::Unsatisfied));
+        assert!(matches!(
+            dispositions.get("ac-1"),
+            Some(ControlDisposition::Workspace { .. })
+        ));
+        assert!(matches!(
+            dispositions.get("pe-3"),
+            Some(ControlDisposition::Inherited { .. })
+        ));
+        assert_eq!(
+            dispositions.get("ia-2"),
+            Some(&ControlDisposition::Unsatisfied)
+        );
     }
 
     #[test]
     fn test_ssp_synthesis_and_auto_promotion_lifecycle() {
+        use chrono::Utc;
+        use oscal_engine::gate_policy::{
+            GatePolicyConfig, GatePolicyConfigCatalog, GatePolicyConfigCatalogTailoring,
+        };
+        use oscal_engine::{
+            validate_system_security_plan, SspWorkspaceComponent, TailoredBaselineReport,
+        };
         use oscal_types::{
             AssessmentResults, ControlSelection, Finding, FindingTarget, ImportAp, Metadata,
             OscalAssessmentResultsDocument, Property, ResultItem, ReviewedControls,
             SelectControlById, TargetStatus,
         };
-        use chrono::Utc;
-        use uuid::Uuid;
-        use oscal_engine::gate_policy::{
-            GatePolicyConfig, GatePolicyConfigCatalog, GatePolicyConfigCatalogTailoring,
-        };
-        use oscal_engine::{validate_system_security_plan, SspWorkspaceComponent, TailoredBaselineReport};
         use std::collections::{BTreeMap, BTreeSet};
+        use uuid::Uuid;
 
         let now = Utc::now();
         let dummy_meta = Metadata {
@@ -5972,12 +7260,27 @@ edition = "2024"
             target: FindingTarget {
                 r#type: "component".to_string(),
                 target_id: "oscal-engine".to_string(),
-                status: TargetStatus { state: "satisfied".to_string(), reason: None },
+                status: TargetStatus {
+                    state: "satisfied".to_string(),
+                    reason: None,
+                },
             },
             props: vec![
-                Property { name: "control-id".to_string(), value: "AC-1".to_string(), ns: None },
-                Property { name: "component".to_string(), value: "oscal-engine".to_string(), ns: None },
-                Property { name: "tier-satisfied".to_string(), value: "true".to_string(), ns: None },
+                Property {
+                    name: "control-id".to_string(),
+                    value: "AC-1".to_string(),
+                    ns: None,
+                },
+                Property {
+                    name: "component".to_string(),
+                    value: "oscal-engine".to_string(),
+                    ns: None,
+                },
+                Property {
+                    name: "tier-satisfied".to_string(),
+                    value: "true".to_string(),
+                    ns: None,
+                },
             ],
             implementation_statement_uuid: None,
             related_observations: vec![],
@@ -5987,7 +7290,9 @@ edition = "2024"
             assessment_results: AssessmentResults {
                 uuid: Uuid::new_v4(),
                 metadata: dummy_meta,
-                import_ap: ImportAp { href: "urn:uuid:dummy".to_string() },
+                import_ap: ImportAp {
+                    href: "urn:uuid:dummy".to_string(),
+                },
                 results: vec![ResultItem {
                     uuid: Uuid::new_v4(),
                     title: "Test Execution".to_string(),
@@ -5997,7 +7302,9 @@ edition = "2024"
                     props: vec![],
                     reviewed_controls: ReviewedControls {
                         control_selections: vec![ControlSelection {
-                            include_controls: vec![SelectControlById { control_id: "ac-1".to_string() }],
+                            include_controls: vec![SelectControlById {
+                                control_id: "ac-1".to_string(),
+                            }],
                         }],
                     },
                     observations: vec![],
@@ -6011,7 +7318,8 @@ edition = "2024"
         fs::create_dir_all(staging_dir).unwrap();
         fs::create_dir_all(release_dir).unwrap();
 
-        let mut policy_cfg: GatePolicyConfig = toml::from_str(r#"
+        let mut policy_cfg: GatePolicyConfig = toml::from_str(
+            r#"
             [policy]
             require_kani_pass = false
             forbid_lean_sorry = false
@@ -6023,7 +7331,9 @@ edition = "2024"
             mode = "auto"
             staging_dir = "target/test_ssp_staging"
             release_dir = "target/test_ssp_release"
-        "#).unwrap();
+        "#,
+        )
+        .unwrap();
         policy_cfg.catalog = Some(GatePolicyConfigCatalog {
             baseline: Some("NIST_SP_800_53_Rev5".to_string()),
             profile: Some("FedRAMP_Moderate".to_string()),
@@ -6046,10 +7356,13 @@ edition = "2024"
         };
 
         let mut dispositions = BTreeMap::new();
-        dispositions.insert("ac-1".to_string(), ControlDisposition::Workspace {
-            component: "oscal-engine".to_string(),
-            achieved_tier: EvidenceTier::Test,
-        });
+        dispositions.insert(
+            "ac-1".to_string(),
+            ControlDisposition::Workspace {
+                component: "oscal-engine".to_string(),
+                achieved_tier: EvidenceTier::Test,
+            },
+        );
 
         let components = vec![SspWorkspaceComponent {
             name: "oscal-engine".to_string(),
@@ -6063,17 +7376,26 @@ edition = "2024"
             &dispositions,
             &components,
             Some(now),
-        ).expect("ssp synthesis succeeds");
+        )
+        .expect("ssp synthesis succeeds");
 
         assert!(validate_system_security_plan(&ssp_val).is_ok());
 
         let staging_ssp_path = staging_dir.join("system-security-plan.json");
-        fs::write(&staging_ssp_path, serde_json::to_string_pretty(&ssp_val).unwrap()).unwrap();
+        fs::write(
+            &staging_ssp_path,
+            serde_json::to_string_pretty(&ssp_val).unwrap(),
+        )
+        .unwrap();
         assert!(staging_ssp_path.exists());
 
         // 2. Evaluate gate and simulate promotion
-        let outcome = evaluate_gate_rules(&ar_doc, None, 0, Some(&policy_cfg), false).expect("gate eval");
-        assert!(outcome.violations.is_empty(), "Gate must pass with 0 violations");
+        let outcome =
+            evaluate_gate_rules(&ar_doc, None, 0, Some(&policy_cfg), false).expect("gate eval");
+        assert!(
+            outcome.violations.is_empty(),
+            "Gate must pass with 0 violations"
+        );
 
         let prod_ssp_path = release_dir.join("system-security-plan.json");
         fs::copy(&staging_ssp_path, &prod_ssp_path).unwrap();
@@ -6081,7 +7403,10 @@ edition = "2024"
 
         let promoted_ssp_str = fs::read_to_string(&prod_ssp_path).unwrap();
         let promoted_ssp_val: serde_json::Value = serde_json::from_str(&promoted_ssp_str).unwrap();
-        assert!(validate_system_security_plan(&promoted_ssp_val).is_ok(), "Promoted SSP must remain 100% schema valid");
+        assert!(
+            validate_system_security_plan(&promoted_ssp_val).is_ok(),
+            "Promoted SSP must remain 100% schema valid"
+        );
 
         // Clean up
         let _ = fs::remove_dir_all(staging_dir);
@@ -6093,7 +7418,9 @@ edition = "2024"
         use oscal_diagnostics::OscalErrorCode;
         let code = OscalErrorCode::UnsatisfiedBaselineControlSspAbort;
         assert_eq!(code.as_str(), "E-OSCAL-013");
-        assert!(code.default_title().contains("System Security Plan synthesis aborted"));
+        assert!(code
+            .default_title()
+            .contains("System Security Plan synthesis aborted"));
     }
 
     #[test]
@@ -6101,11 +7428,15 @@ edition = "2024"
         use oscal_diagnostics::OscalErrorCode;
         let c14 = OscalErrorCode::CatalogHashMismatch;
         assert_eq!(c14.as_str(), "E-OSCAL-014");
-        assert!(c14.default_title().contains("Catalog cryptographic hash mismatch"));
+        assert!(c14
+            .default_title()
+            .contains("Catalog cryptographic hash mismatch"));
 
         let c15 = OscalErrorCode::EvidenceStalenessTTL;
         assert_eq!(c15.as_str(), "E-OSCAL-015");
-        assert!(c15.default_title().contains("Security evidence age exceeds continuous monitoring staleness TTL"));
+        assert!(c15
+            .default_title()
+            .contains("Security evidence age exceeds continuous monitoring staleness TTL"));
     }
 
     #[test]
@@ -6129,7 +7460,12 @@ edition = "2024"
         ];
         let cli = Cli::parse_from(args);
         match cli.command {
-            Commands::GenerateSap { ssp_path, sap_out, legacy_ar_compat, .. } => {
+            Commands::GenerateSap {
+                ssp_path,
+                sap_out,
+                legacy_ar_compat,
+                ..
+            } => {
                 assert_eq!(ssp_path, PathBuf::from("target/dummy_ssp.json"));
                 assert_eq!(sap_out, PathBuf::from("target/dummy_sap.json"));
                 assert!(legacy_ar_compat);
@@ -6211,14 +7547,9 @@ edition = "2024"
             }
         });
 
-        let sap_val = oscal_engine::synthesize_assessment_plan(
-            &dummy_ssp,
-            None,
-            None,
-            None,
-            true,
-            Some(now),
-        ).expect("SAP synthesis must succeed");
+        let sap_val =
+            oscal_engine::synthesize_assessment_plan(&dummy_ssp, None, None, None, true, Some(now))
+                .expect("SAP synthesis must succeed");
 
         assert!(oscal_engine::validate_assessment_plan(&sap_val).is_ok());
 
@@ -6237,7 +7568,9 @@ edition = "2024"
         use oscal_diagnostics::OscalErrorCode;
         let c17 = OscalErrorCode::OrphanedAssessmentObservation;
         assert_eq!(c17.as_str(), "E-OSCAL-017");
-        assert!(c17.default_title().contains("orphaned observation or finding without valid SAP/SSP reference"));
+        assert!(c17
+            .default_title()
+            .contains("orphaned observation or finding without valid SAP/SSP reference"));
     }
 
     #[test]
@@ -6261,7 +7594,13 @@ edition = "2024"
         assert!(bundle.validate().is_ok());
         let ar = &bundle.assessment_results.assessment_results;
         assert_eq!(ar.results[0].findings[0].target.r#type, "statement-id");
-        let expected_ap_href = format!("urn:uuid:{}", uuid::Uuid::new_v5(&oscal_engine::PRIME_OSCAL_NAMESPACE, b"baseline:assessment-plan:prime-default"));
+        let expected_ap_href = format!(
+            "urn:uuid:{}",
+            uuid::Uuid::new_v5(
+                &oscal_engine::PRIME_OSCAL_NAMESPACE,
+                b"baseline:assessment-plan:prime-default"
+            )
+        );
         assert_eq!(ar.import_ap.href, expected_ap_href);
     }
 
@@ -6321,7 +7660,9 @@ edition = "2024"
             }
         });
 
-        let sap_val = oscal_engine::synthesize_assessment_plan(&dummy_ssp, None, None, None, false, None).unwrap();
+        let sap_val =
+            oscal_engine::synthesize_assessment_plan(&dummy_ssp, None, None, None, false, None)
+                .unwrap();
         assert!(oscal_engine::validate_assessment_plan(&sap_val).is_ok());
 
         // Linking succeeds in linked mode
@@ -6339,8 +7680,16 @@ edition = "2024"
             waiver_mode: oscal_engine::gate_policy::GatePolicyConfigPolicyWaiverMode::Downgrade,
         }];
 
-        let linked_res = oscal_engine::synthesize_linked_compliance_bundle(&inputs, &sap_val, Some(&dummy_ssp), None);
-        assert!(linked_res.is_ok(), "Linked AR synthesis must succeed with valid SAP");
+        let linked_res = oscal_engine::synthesize_linked_compliance_bundle(
+            &inputs,
+            &sap_val,
+            Some(&dummy_ssp),
+            None,
+        );
+        assert!(
+            linked_res.is_ok(),
+            "Linked AR synthesis must succeed with valid SAP"
+        );
     }
 
     #[test]
@@ -6359,7 +7708,8 @@ edition = "2024"
         fs::create_dir_all(release_dir).unwrap();
 
         let now = chrono::Utc::now();
-        let mut policy_cfg: GatePolicyConfig = toml::from_str(r#"
+        let mut policy_cfg: GatePolicyConfig = toml::from_str(
+            r#"
             [policy]
             require_kani_pass = false
             forbid_lean_sorry = false
@@ -6371,7 +7721,9 @@ edition = "2024"
             mode = "auto"
             staging_dir = "target/test_atomic_staging"
             release_dir = "target/test_atomic_release"
-        "#).unwrap();
+        "#,
+        )
+        .unwrap();
         policy_cfg.catalog = Some(GatePolicyConfigCatalog {
             baseline: Some("NIST_SP_800_53_Rev5".to_string()),
             profile: Some("FedRAMP_Moderate".to_string()),
@@ -6393,10 +7745,13 @@ edition = "2024"
         };
 
         let mut dispositions = BTreeMap::new();
-        dispositions.insert("si-7".to_string(), ControlDisposition::Workspace {
-            component: "oscal-engine".to_string(),
-            achieved_tier: EvidenceTier::Test,
-        });
+        dispositions.insert(
+            "si-7".to_string(),
+            ControlDisposition::Workspace {
+                component: "oscal-engine".to_string(),
+                achieved_tier: EvidenceTier::Test,
+            },
+        );
 
         let components = vec![SspWorkspaceComponent {
             name: "oscal-engine".to_string(),
@@ -6410,9 +7765,12 @@ edition = "2024"
             &dispositions,
             &components,
             Some(now),
-        ).expect("ssp synthesis succeeds");
+        )
+        .expect("ssp synthesis succeeds");
 
-        let sap_val = oscal_engine::synthesize_assessment_plan(&ssp_val, None, None, None, false, Some(now)).unwrap();
+        let sap_val =
+            oscal_engine::synthesize_assessment_plan(&ssp_val, None, None, None, false, Some(now))
+                .unwrap();
 
         let inputs = vec![SynthesisInput {
             title: "Test SI-7".to_string(),
@@ -6427,7 +7785,13 @@ edition = "2024"
             is_waived: false,
             waiver_mode: oscal_engine::gate_policy::GatePolicyConfigPolicyWaiverMode::Downgrade,
         }];
-        let bundle = oscal_engine::synthesize_linked_compliance_bundle(&inputs, &sap_val, Some(&ssp_val), Some(now)).unwrap();
+        let bundle = oscal_engine::synthesize_linked_compliance_bundle(
+            &inputs,
+            &sap_val,
+            Some(&ssp_val),
+            Some(now),
+        )
+        .unwrap();
 
         let ssp_path = staging_dir.join("system-security-plan.json");
         let sap_path = staging_dir.join("assessment-plan.json");
@@ -6435,7 +7799,11 @@ edition = "2024"
 
         fs::write(&ssp_path, serde_json::to_string_pretty(&ssp_val).unwrap()).unwrap();
         fs::write(&sap_path, serde_json::to_string_pretty(&sap_val).unwrap()).unwrap();
-        fs::write(&ar_path, serde_json::to_string_pretty(&bundle.assessment_results).unwrap()).unwrap();
+        fs::write(
+            &ar_path,
+            serde_json::to_string_pretty(&bundle.assessment_results).unwrap(),
+        )
+        .unwrap();
 
         let mut ar_doc = bundle.assessment_results;
 
@@ -6449,7 +7817,8 @@ edition = "2024"
             None,
             None,
             "passed",
-        ).expect("transactional promotion must succeed");
+        )
+        .expect("transactional promotion must succeed");
 
         // Verify that all 3 files exist in release directory and temporary/backup dirs are cleaned up
         assert!(release_dir.join("system-security-plan.json").exists());
@@ -6477,7 +7846,11 @@ edition = "2024"
 
         // Staging files: provide an invalid/schema-corrupted SSP
         let invalid_ssp = staging_dir.join("system-security-plan.json");
-        fs::write(&invalid_ssp, "{\"system-security-plan\": {\"corrupted\": true}}").unwrap();
+        fs::write(
+            &invalid_ssp,
+            "{\"system-security-plan\": {\"corrupted\": true}}",
+        )
+        .unwrap();
 
         let dummy_meta = oscal_types::Metadata {
             title: "T".to_string(),
@@ -6491,7 +7864,9 @@ edition = "2024"
             assessment_results: oscal_types::AssessmentResults {
                 uuid: uuid::Uuid::new_v4(),
                 metadata: dummy_meta,
-                import_ap: oscal_types::ImportAp { href: "urn:uuid:dummy".to_string() },
+                import_ap: oscal_types::ImportAp {
+                    href: "urn:uuid:dummy".to_string(),
+                },
                 results: vec![],
             },
         };
@@ -6512,7 +7887,10 @@ edition = "2024"
 
         // Release directory must be intact with original content
         let content = fs::read_to_string(&prior_ar).unwrap();
-        assert_eq!(content, "ORIGINAL_PRE_PROMOTION_CONTENT", "Original release content must be preserved without partial update");
+        assert_eq!(
+            content, "ORIGINAL_PRE_PROMOTION_CONTENT",
+            "Original release content must be preserved without partial update"
+        );
 
         let _ = fs::remove_dir_all(staging_dir);
         let _ = fs::remove_dir_all(release_dir);
@@ -6572,7 +7950,9 @@ edition = "2024"
             }
         });
 
-        let sap_val = oscal_engine::synthesize_assessment_plan(&dummy_ssp, None, None, None, false, None).unwrap();
+        let sap_val =
+            oscal_engine::synthesize_assessment_plan(&dummy_ssp, None, None, None, false, None)
+                .unwrap();
 
         let inputs = vec![SynthesisInput {
             title: "Test SI-7".to_string(),
@@ -6588,13 +7968,25 @@ edition = "2024"
             waiver_mode: oscal_engine::gate_policy::GatePolicyConfigPolicyWaiverMode::Downgrade,
         }];
 
-        let bundle = oscal_engine::synthesize_linked_compliance_bundle(&inputs, &sap_val, Some(&dummy_ssp), None).unwrap();
-        let outcome = evaluate_gate_rules(&bundle.assessment_results, None, 0, None, false).unwrap();
+        let bundle = oscal_engine::synthesize_linked_compliance_bundle(
+            &inputs,
+            &sap_val,
+            Some(&dummy_ssp),
+            None,
+        )
+        .unwrap();
+        let outcome =
+            evaluate_gate_rules(&bundle.assessment_results, None, 0, None, false).unwrap();
 
         // The number of AR findings must agree with the number of evaluated controls in telemetry
-        let findings_count = bundle.assessment_results.assessment_results.results[0].findings.len();
+        let findings_count = bundle.assessment_results.assessment_results.results[0]
+            .findings
+            .len();
         assert_eq!(findings_count, outcome.telemetry.total_declarations);
-        assert_eq!(outcome.telemetry.tier_satisfied_declarations, findings_count);
+        assert_eq!(
+            outcome.telemetry.tier_satisfied_declarations,
+            findings_count
+        );
     }
 
     #[test]
@@ -6602,15 +7994,21 @@ edition = "2024"
         use oscal_diagnostics::OscalErrorCode;
         let c18 = OscalErrorCode::POAMStateTransitionInvalid;
         assert_eq!(c18.as_str(), "E-OSCAL-018");
-        assert!(c18.default_title().contains("Plan of Action and Milestones item state transition"));
+        assert!(c18
+            .default_title()
+            .contains("Plan of Action and Milestones item state transition"));
 
         let c19 = OscalErrorCode::ReplayMismatch;
         assert_eq!(c19.as_str(), "E-OSCAL-019");
-        assert!(c19.default_title().contains("Audit replay synthesized artifacts do not match"));
+        assert!(c19
+            .default_title()
+            .contains("Audit replay synthesized artifacts do not match"));
 
         let c20 = OscalErrorCode::ReplayToolchainMismatch;
         assert_eq!(c20.as_str(), "E-OSCAL-020");
-        assert!(c20.default_title().contains("Audit replay host toolchain version differs"));
+        assert!(c20
+            .default_title()
+            .contains("Audit replay host toolchain version differs"));
     }
 
     #[test]
@@ -6626,7 +8024,11 @@ edition = "2024"
         ];
         let cli = Cli::parse_from(args);
         match cli.command {
-            Commands::Replay { record, history_dir, ignore_toolchain_mismatch } => {
+            Commands::Replay {
+                record,
+                history_dir,
+                ignore_toolchain_mismatch,
+            } => {
                 assert_eq!(record, "2026-11-10T15-00-00Z_58cf8f9");
                 assert_eq!(history_dir, PathBuf::from("artifacts/oscal/history"));
                 assert!(ignore_toolchain_mismatch);
@@ -6661,7 +8063,8 @@ edition = "2024"
             Path::new("."),
             None,
             Some("passed"),
-        ).unwrap();
+        )
+        .unwrap();
 
         let rec2 = oscal_engine::history::emit_history_record(
             test_dir2,
@@ -6675,7 +8078,8 @@ edition = "2024"
             Path::new("."),
             None,
             Some("passed"),
-        ).unwrap();
+        )
+        .unwrap();
 
         // Under fixed clock, artifact hashes and record metadata must be byte-for-byte identical
         assert_eq!(rec1.record_id, rec2.record_id);
@@ -6683,7 +8087,10 @@ edition = "2024"
 
         let index1_bytes = fs::read(test_dir1.join(&rec1.record_id).join("index.json")).unwrap();
         let index2_bytes = fs::read(test_dir2.join(&rec2.record_id).join("index.json")).unwrap();
-        assert_eq!(index1_bytes, index2_bytes, "index.json must be byte-identical under fixed clock");
+        assert_eq!(
+            index1_bytes, index2_bytes,
+            "index.json must be byte-identical under fixed clock"
+        );
 
         let _ = fs::remove_dir_all(test_dir1);
         let _ = fs::remove_dir_all(test_dir2);
@@ -6692,14 +8099,17 @@ edition = "2024"
     #[test]
     fn test_replay_verification_success_and_tamper_detection() {
         use chrono::TimeZone;
-        use oscal_engine::gate_policy::{GatePolicyConfigCatalog, GatePolicyConfigCatalogTailoring};
+        use oscal_engine::gate_policy::{
+            GatePolicyConfigCatalog, GatePolicyConfigCatalogTailoring,
+        };
         let test_dir = Path::new("target/test_replay_verification_suite");
         let _ = fs::remove_dir_all(test_dir);
         fs::create_dir_all(test_dir).unwrap();
 
         let fixed_clock = Utc.with_ymd_and_hms(2026, 11, 10, 19, 0, 0).unwrap();
 
-        let mut policy_cfg: GatePolicyConfig = toml::from_str(r#"
+        let mut policy_cfg: GatePolicyConfig = toml::from_str(
+            r#"
             [policy]
             require_kani_pass = false
             forbid_lean_sorry = false
@@ -6711,7 +8121,9 @@ edition = "2024"
             mode = "auto"
             staging_dir = "target/test_replay_staging"
             release_dir = "target/test_replay_release"
-        "#).unwrap();
+        "#,
+        )
+        .unwrap();
         policy_cfg.catalog = Some(GatePolicyConfigCatalog {
             baseline: Some("NIST_SP_800_53_Rev5".to_string()),
             profile: Some("FedRAMP_Moderate".to_string()),
@@ -6733,10 +8145,13 @@ edition = "2024"
         };
 
         let mut dispositions = BTreeMap::new();
-        dispositions.insert("si-7".to_string(), ControlDisposition::Workspace {
-            component: "oscal-engine".to_string(),
-            achieved_tier: EvidenceTier::Test,
-        });
+        dispositions.insert(
+            "si-7".to_string(),
+            ControlDisposition::Workspace {
+                component: "oscal-engine".to_string(),
+                achieved_tier: EvidenceTier::Test,
+            },
+        );
 
         let components = vec![SspWorkspaceComponent {
             name: "oscal-engine".to_string(),
@@ -6750,9 +8165,18 @@ edition = "2024"
             &dispositions,
             &components,
             Some(fixed_clock),
-        ).expect("ssp synthesis succeeds");
+        )
+        .expect("ssp synthesis succeeds");
 
-        let sap_val = oscal_engine::synthesize_assessment_plan(&ssp_val, None, None, None, false, Some(fixed_clock)).unwrap();
+        let sap_val = oscal_engine::synthesize_assessment_plan(
+            &ssp_val,
+            None,
+            None,
+            None,
+            false,
+            Some(fixed_clock),
+        )
+        .unwrap();
 
         let inputs = vec![SynthesisInput {
             title: "Test SI-7".to_string(),
@@ -6767,7 +8191,13 @@ edition = "2024"
             is_waived: false,
             waiver_mode: oscal_engine::gate_policy::GatePolicyConfigPolicyWaiverMode::Downgrade,
         }];
-        let bundle = oscal_engine::synthesize_linked_compliance_bundle(&inputs, &sap_val, Some(&ssp_val), Some(fixed_clock)).unwrap();
+        let bundle = oscal_engine::synthesize_linked_compliance_bundle(
+            &inputs,
+            &sap_val,
+            Some(&ssp_val),
+            Some(fixed_clock),
+        )
+        .unwrap();
 
         let ssp_str = serde_json::to_string_pretty(&ssp_val).unwrap();
         let sap_str = serde_json::to_string_pretty(&sap_val).unwrap();
@@ -6786,7 +8216,8 @@ edition = "2024"
             Path::new("."),
             None,
             Some("passed"),
-        ).unwrap();
+        )
+        .unwrap();
 
         let rec_dir = test_dir.join(&rec.record_id);
 
@@ -6801,7 +8232,11 @@ edition = "2024"
         fs::write(&ar_file, "{\"tampered\": true}").unwrap();
 
         let err = oscal_engine::history::replay_history_record(&rec_dir, false).unwrap_err();
-        assert!(err.iter().any(|e| e.contains("E-OSCAL-019")), "Tamper must trigger E-OSCAL-019: {:?}", err);
+        assert!(
+            err.iter().any(|e| e.contains("E-OSCAL-019")),
+            "Tamper must trigger E-OSCAL-019: {:?}",
+            err
+        );
 
         let _ = fs::remove_dir_all(test_dir);
     }
@@ -6940,12 +8375,21 @@ fail_on_drift = true
         };
 
         let report = oscal_engine::execute_monitor(&config);
-        assert_eq!(report.exit_code, 2, "Drift must trigger policy violation exit code 2");
+        assert_eq!(
+            report.exit_code, 2,
+            "Drift must trigger policy violation exit code 2"
+        );
         assert!(report.has_policy_violation);
 
-        let drift_check = report.checks.iter().find(|c| c.name == "catalog_drift").unwrap();
+        let drift_check = report
+            .checks
+            .iter()
+            .find(|c| c.name == "catalog_drift")
+            .unwrap();
         assert_eq!(drift_check.violation_code.as_deref(), Some("E-OSCAL-014"));
-        assert!(drift_check.message.contains("Operational catalog drift detected by monitor"));
+        assert!(drift_check
+            .message
+            .contains("Operational catalog drift detected by monitor"));
 
         // Read-only check: assert no history record or staging artifacts created
         assert!(!artifacts_dir.join("history").exists());
@@ -7040,7 +8484,10 @@ fail_on_stale = true
             ..config_default
         };
         let rep2 = oscal_engine::execute_monitor(&config_overridden);
-        assert_eq!(rep2.exit_code, 2, "2-day-old AR is stale under overridden 24h TTL");
+        assert_eq!(
+            rep2.exit_code, 2,
+            "2-day-old AR is stale under overridden 24h TTL"
+        );
         assert!(rep2.has_policy_violation);
 
         let _ = fs::remove_dir_all(test_dir);
@@ -7119,7 +8566,10 @@ require_poam = false
             repo_root: test_dir.to_path_buf(),
         };
         let rep1 = oscal_engine::execute_monitor(&config_optional);
-        assert_eq!(rep1.exit_code, 0, "Missing poam.json with require_poam=false must exit 0");
+        assert_eq!(
+            rep1.exit_code, 0,
+            "Missing poam.json with require_poam=false must exit 0"
+        );
         assert!(!rep1.has_operational_error);
 
         // 2. require_poam = true -> exit code 1
@@ -7128,7 +8578,10 @@ require_poam = false
             ..config_optional
         };
         let rep2 = oscal_engine::execute_monitor(&config_required);
-        assert_eq!(rep2.exit_code, 1, "Missing poam.json with require_poam=true must exit 1");
+        assert_eq!(
+            rep2.exit_code, 1,
+            "Missing poam.json with require_poam=true must exit 1"
+        );
         assert!(rep2.has_operational_error);
 
         let _ = fs::remove_dir_all(test_dir);
@@ -7213,7 +8666,10 @@ release_dir = "release"
         let json1 = report1.to_json().unwrap();
         let json2 = report2.to_json().unwrap();
 
-        assert_eq!(json1, json2, "Monitor JSON outputs under fixed clock must be byte-for-byte identical");
+        assert_eq!(
+            json1, json2,
+            "Monitor JSON outputs under fixed clock must be byte-for-byte identical"
+        );
 
         let _ = fs::remove_dir_all(test_dir);
     }
@@ -7227,8 +8683,13 @@ release_dir = "release"
         } else {
             Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tests/golden/cli-help.txt")
         };
-        let golden_help = fs::read_to_string(&golden_help_path)
-            .unwrap_or_else(|e| panic!("Golden CLI help file must exist at {}: {}", golden_help_path.display(), e));
+        let golden_help = fs::read_to_string(&golden_help_path).unwrap_or_else(|e| {
+            panic!(
+                "Golden CLI help file must exist at {}: {}",
+                golden_help_path.display(),
+                e
+            )
+        });
 
         assert!(
             !golden_help.contains("generate-sap"),
@@ -7380,13 +8841,30 @@ require_poam = false
     fn test_e_oscal_021_to_024_registered_in_diagnostic_codes() {
         use oscal_diagnostics::OscalErrorCode;
         assert_eq!(OscalErrorCode::ProfileCycleDetected.as_str(), "E-OSCAL-021");
-        assert_eq!(OscalErrorCode::ProfileImportUnresolved.as_str(), "E-OSCAL-022");
-        assert_eq!(OscalErrorCode::ProfileControlSelectorUnresolved.as_str(), "E-OSCAL-023");
-        assert_eq!(OscalErrorCode::ProfileParameterUnresolved.as_str(), "E-OSCAL-024");
-        assert!(!OscalErrorCode::ProfileCycleDetected.default_title().is_empty());
-        assert!(!OscalErrorCode::ProfileImportUnresolved.default_title().is_empty());
-        assert!(!OscalErrorCode::ProfileControlSelectorUnresolved.default_title().is_empty());
-        assert!(!OscalErrorCode::ProfileParameterUnresolved.default_title().is_empty());
+        assert_eq!(
+            OscalErrorCode::ProfileImportUnresolved.as_str(),
+            "E-OSCAL-022"
+        );
+        assert_eq!(
+            OscalErrorCode::ProfileControlSelectorUnresolved.as_str(),
+            "E-OSCAL-023"
+        );
+        assert_eq!(
+            OscalErrorCode::ProfileParameterUnresolved.as_str(),
+            "E-OSCAL-024"
+        );
+        assert!(!OscalErrorCode::ProfileCycleDetected
+            .default_title()
+            .is_empty());
+        assert!(!OscalErrorCode::ProfileImportUnresolved
+            .default_title()
+            .is_empty());
+        assert!(!OscalErrorCode::ProfileControlSelectorUnresolved
+            .default_title()
+            .is_empty());
+        assert!(!OscalErrorCode::ProfileParameterUnresolved
+            .default_title()
+            .is_empty());
     }
 
     #[test]
@@ -7412,12 +8890,9 @@ require_poam = false
         let profile_path = test_dir.join("staging/profile.json");
         let catalog_path = Path::new("schemas/catalogs/NIST_SP_800-53_rev5_catalog.json");
 
-        let resolved = oscal_engine::resolve_profile(
-            &profile_path,
-            catalog_path,
-            Path::new("."),
-            None,
-        ).expect("Profile resolution must succeed");
+        let resolved =
+            oscal_engine::resolve_profile(&profile_path, catalog_path, Path::new("."), None)
+                .expect("Profile resolution must succeed");
 
         oscal_engine::assert_resolved_catalog_not_skeleton(&resolved)
             .expect("Resolved catalog must not be skeleton");
@@ -7427,17 +8902,29 @@ require_poam = false
         }
         fs::write(&out_path, serde_json::to_string_pretty(&resolved).unwrap()).unwrap();
 
-        assert!(out_path.exists(), "Phase 1.5 output must be written to staging/resolved-catalog.json");
+        assert!(
+            out_path.exists(),
+            "Phase 1.5 output must be written to staging/resolved-catalog.json"
+        );
         let content = fs::read_to_string(&out_path).unwrap();
         let parsed: serde_json::Value = serde_json::from_str(&content).unwrap();
-        assert!(parsed.get("catalog").is_some(), "Resolved catalog must contain 'catalog' envelope");
-        let props = parsed["catalog"]["metadata"]["props"].as_array().expect("props array");
         assert!(
-            props.iter().any(|p| p["name"] == "resolution-status" && p["value"] == "resolved"),
+            parsed.get("catalog").is_some(),
+            "Resolved catalog must contain 'catalog' envelope"
+        );
+        let props = parsed["catalog"]["metadata"]["props"]
+            .as_array()
+            .expect("props array");
+        assert!(
+            props
+                .iter()
+                .any(|p| p["name"] == "resolution-status" && p["value"] == "resolved"),
             "Catalog must record resolution-status: resolved"
         );
         assert!(
-            !props.iter().any(|p| p["name"] == "resolution-status" && p["value"] == "skeleton"),
+            !props
+                .iter()
+                .any(|p| p["name"] == "resolution-status" && p["value"] == "skeleton"),
             "Catalog must NEVER retain skeleton resolution-status"
         );
 
@@ -7461,7 +8948,10 @@ require_poam = false
             }
         });
         let result = oscal_engine::assert_resolved_catalog_not_skeleton(&skeleton_catalog);
-        assert!(result.is_err(), "Skeleton resolution status must be rejected for downstream phases");
+        assert!(
+            result.is_err(),
+            "Skeleton resolution status must be rejected for downstream phases"
+        );
 
         let resolved_catalog = serde_json::json!({
             "catalog": {
@@ -7498,8 +8988,12 @@ require_poam = false
         let content = fs::read_to_string(&out_path).unwrap();
         let parsed: serde_json::Value = serde_json::from_str(&content).unwrap();
         assert!(parsed.get("catalog").is_some());
-        let props = parsed["catalog"]["metadata"]["props"].as_array().expect("props");
-        assert!(props.iter().any(|p| p["name"] == "resolution-status" && p["value"] == "resolved"));
+        let props = parsed["catalog"]["metadata"]["props"]
+            .as_array()
+            .expect("props");
+        assert!(props
+            .iter()
+            .any(|p| p["name"] == "resolution-status" && p["value"] == "resolved"));
 
         let _ = fs::remove_dir_all(test_dir);
     }
@@ -7555,31 +9049,39 @@ require_poam = false
                 ]
             }
         });
-        fs::write(&profile_path, serde_json::to_string_pretty(&profile_doc).unwrap()).unwrap();
+        fs::write(
+            &profile_path,
+            serde_json::to_string_pretty(&profile_doc).unwrap(),
+        )
+        .unwrap();
 
         let catalog_path = Path::new("schemas/catalogs/NIST_SP_800-53_rev5_catalog.json");
-        let resolved_cat = oscal_engine::resolve_profile(
-            &profile_path,
-            catalog_path,
-            Path::new("."),
-            None,
-        ).expect("Resolve profile");
+        let resolved_cat =
+            oscal_engine::resolve_profile(&profile_path, catalog_path, Path::new("."), None)
+                .expect("Resolve profile");
 
-        let baseline_rep = oscal_engine::tailoring::derive_tailored_baseline_from_resolved_catalog(&resolved_cat)
-            .expect("Derive baseline");
+        let baseline_rep =
+            oscal_engine::tailoring::derive_tailored_baseline_from_resolved_catalog(&resolved_cat)
+                .expect("Derive baseline");
         assert_eq!(baseline_rep.denominator, 2);
         assert!(baseline_rep.c_tailored.contains("si-7"));
         assert!(baseline_rep.c_tailored.contains("ca-2"));
 
         let mut dispositions = BTreeMap::new();
-        dispositions.insert("si-7".to_string(), ControlDisposition::Workspace {
-            component: "prime-core".to_string(),
-            achieved_tier: EvidenceTier::Test,
-        });
-        dispositions.insert("ca-2".to_string(), ControlDisposition::Workspace {
-            component: "prime-core".to_string(),
-            achieved_tier: EvidenceTier::Test,
-        });
+        dispositions.insert(
+            "si-7".to_string(),
+            ControlDisposition::Workspace {
+                component: "prime-core".to_string(),
+                achieved_tier: EvidenceTier::Test,
+            },
+        );
+        dispositions.insert(
+            "ca-2".to_string(),
+            ControlDisposition::Workspace {
+                component: "prime-core".to_string(),
+                achieved_tier: EvidenceTier::Test,
+            },
+        );
 
         let ssp_val = oscal_engine::synthesize_system_security_plan(
             None,
@@ -7587,13 +9089,18 @@ require_poam = false
             &dispositions,
             &[],
             None,
-        ).expect("Synthesize SSP");
+        )
+        .expect("Synthesize SSP");
 
-        let imp_reqs = ssp_val["system-security-plan"]["control-implementation"]["implemented-requirements"]
+        let imp_reqs = ssp_val["system-security-plan"]["control-implementation"]
+            ["implemented-requirements"]
             .as_array()
             .expect("implemented-requirements");
         assert_eq!(imp_reqs.len(), 2);
-        let ssp_cids: Vec<&str> = imp_reqs.iter().filter_map(|r| r["control-id"].as_str()).collect();
+        let ssp_cids: Vec<&str> = imp_reqs
+            .iter()
+            .filter_map(|r| r["control-id"].as_str())
+            .collect();
         assert!(ssp_cids.contains(&"si-7"));
         assert!(ssp_cids.contains(&"ca-2"));
 
@@ -7629,27 +9136,36 @@ require_poam = false
                 ]
             }
         });
-        fs::write(&profile_path, serde_json::to_string_pretty(&profile_doc).unwrap()).unwrap();
+        fs::write(
+            &profile_path,
+            serde_json::to_string_pretty(&profile_doc).unwrap(),
+        )
+        .unwrap();
 
         let catalog_path = Path::new("schemas/catalogs/NIST_SP_800-53_rev5_catalog.json");
-        let resolved_cat = oscal_engine::resolve_profile(
-            &profile_path,
-            catalog_path,
-            Path::new("."),
-            None,
-        ).expect("Resolve profile");
+        let resolved_cat =
+            oscal_engine::resolve_profile(&profile_path, catalog_path, Path::new("."), None)
+                .expect("Resolve profile");
 
-        let baseline_rep = oscal_engine::tailoring::derive_tailored_baseline_from_resolved_catalog(&resolved_cat).unwrap();
+        let baseline_rep =
+            oscal_engine::tailoring::derive_tailored_baseline_from_resolved_catalog(&resolved_cat)
+                .unwrap();
 
         let mut dispositions = BTreeMap::new();
-        dispositions.insert("cm-7".to_string(), ControlDisposition::Workspace {
-            component: "prime-core".to_string(),
-            achieved_tier: EvidenceTier::Test,
-        });
-        dispositions.insert("si-7".to_string(), ControlDisposition::Workspace {
-            component: "prime-core".to_string(),
-            achieved_tier: EvidenceTier::Test,
-        });
+        dispositions.insert(
+            "cm-7".to_string(),
+            ControlDisposition::Workspace {
+                component: "prime-core".to_string(),
+                achieved_tier: EvidenceTier::Test,
+            },
+        );
+        dispositions.insert(
+            "si-7".to_string(),
+            ControlDisposition::Workspace {
+                component: "prime-core".to_string(),
+                achieved_tier: EvidenceTier::Test,
+            },
+        );
 
         let ssp_val = oscal_engine::synthesize_system_security_plan(
             None,
@@ -7657,7 +9173,8 @@ require_poam = false
             &dispositions,
             &[],
             None,
-        ).expect("Synthesize SSP");
+        )
+        .expect("Synthesize SSP");
 
         let sap_val = oscal_engine::synthesize_assessment_plan(
             &ssp_val,
@@ -7666,13 +9183,17 @@ require_poam = false
             None,
             false,
             None,
-        ).expect("Synthesize SAP");
+        )
+        .expect("Synthesize SAP");
 
         let objectives = sap_val["assessment-plan"]["local-definitions"]["objectives-and-methods"]
             .as_array()
             .expect("objectives-and-methods");
         assert_eq!(objectives.len(), 2);
-        let obj_cids: Vec<&str> = objectives.iter().filter_map(|o| o["control-id"].as_str()).collect();
+        let obj_cids: Vec<&str> = objectives
+            .iter()
+            .filter_map(|o| o["control-id"].as_str())
+            .collect();
         assert!(obj_cids.contains(&"cm-7"));
         assert!(obj_cids.contains(&"si-7"));
 
@@ -7709,7 +9230,11 @@ require_poam = false
                 ]
             }
         });
-        fs::write(&profile_path, serde_json::to_string_pretty(&profile_doc).unwrap()).unwrap();
+        fs::write(
+            &profile_path,
+            serde_json::to_string_pretty(&profile_doc).unwrap(),
+        )
+        .unwrap();
 
         let catalog_path = Path::new("schemas/catalogs/NIST_SP_800-53_rev5_catalog.json");
         let out_path = test_dir.join("resolved.json");
@@ -7735,7 +9260,9 @@ require_poam = false
 
         let resolved_content = fs::read_to_string(&out_path).unwrap();
         let resolved: serde_json::Value = serde_json::from_str(&resolved_content).unwrap();
-        let baseline = oscal_engine::tailoring::derive_tailored_baseline_from_resolved_catalog(&resolved).unwrap();
+        let baseline =
+            oscal_engine::tailoring::derive_tailored_baseline_from_resolved_catalog(&resolved)
+                .unwrap();
 
         // Assert profile controls (ac-1) took precedence over tailoring (si-7)
         assert_eq!(baseline.denominator, 1);
@@ -7772,9 +9299,18 @@ require_poam = false
                 out_dir,
                 dry_run,
             } => {
-                assert_eq!(evidence_path, PathBuf::from("artifacts/oscal/staging/evidence.json"));
-                assert_eq!(release_status_path, PathBuf::from("artifacts/oscal/staging/release-status.json"));
-                assert_eq!(catalog_path, PathBuf::from("schemas/catalogs/NIST_SP_800-53_rev5_catalog.json"));
+                assert_eq!(
+                    evidence_path,
+                    PathBuf::from("artifacts/oscal/staging/evidence.json")
+                );
+                assert_eq!(
+                    release_status_path,
+                    PathBuf::from("artifacts/oscal/staging/release-status.json")
+                );
+                assert_eq!(
+                    catalog_path,
+                    PathBuf::from("schemas/catalogs/NIST_SP_800-53_rev5_catalog.json")
+                );
                 assert_eq!(policy_path, PathBuf::from("lean-rust.toml"));
                 assert_eq!(out_dir, PathBuf::from("target/oscal-preview"));
                 assert!(dry_run);
@@ -7859,7 +9395,11 @@ require_poam = false
                 "passed": true
             }
         });
-        fs::write(&evidence_path, serde_json::to_string_pretty(&evidence_json).unwrap()).unwrap();
+        fs::write(
+            &evidence_path,
+            serde_json::to_string_pretty(&evidence_json).unwrap(),
+        )
+        .unwrap();
 
         let release_status_json = serde_json::json!({
             "version": "1.0.0",
@@ -7886,7 +9426,11 @@ require_poam = false
                 "evidence_sha256": "c0ffee0000000000000000000000000000000000000000000000000000000000"
             }
         });
-        fs::write(&release_status_path, serde_json::to_string_pretty(&release_status_json).unwrap()).unwrap();
+        fs::write(
+            &release_status_path,
+            serde_json::to_string_pretty(&release_status_json).unwrap(),
+        )
+        .unwrap();
 
         // 1. Dry run: writes to preview_dir
         run_package(
@@ -7896,7 +9440,8 @@ require_poam = false
             policy_path,
             &prod_package_dir,
             true,
-        ).expect("run_package dry-run must succeed");
+        )
+        .expect("run_package dry-run must succeed");
 
         assert!(preview_dir.join("system-security-plan.json").exists());
         assert!(preview_dir.join("assessment-plan.json").exists());
@@ -7904,16 +9449,31 @@ require_poam = false
         assert!(preview_dir.join("trestle-attestation.json").exists());
 
         // Validate OSCAL schemas on generated preview artifacts
-        let ssp_val: serde_json::Value = serde_json::from_str(&fs::read_to_string(preview_dir.join("system-security-plan.json")).unwrap()).unwrap();
-        oscal_engine::validate_system_security_plan(&ssp_val).expect("SSP must conform to NIST OSCAL 1.1.0 schema");
+        let ssp_val: serde_json::Value = serde_json::from_str(
+            &fs::read_to_string(preview_dir.join("system-security-plan.json")).unwrap(),
+        )
+        .unwrap();
+        oscal_engine::validate_system_security_plan(&ssp_val)
+            .expect("SSP must conform to NIST OSCAL 1.1.0 schema");
 
-        let sap_val: serde_json::Value = serde_json::from_str(&fs::read_to_string(preview_dir.join("assessment-plan.json")).unwrap()).unwrap();
-        oscal_engine::validate_assessment_plan(&sap_val).expect("SAP must conform to NIST OSCAL 1.1.0 schema");
+        let sap_val: serde_json::Value = serde_json::from_str(
+            &fs::read_to_string(preview_dir.join("assessment-plan.json")).unwrap(),
+        )
+        .unwrap();
+        oscal_engine::validate_assessment_plan(&sap_val)
+            .expect("SAP must conform to NIST OSCAL 1.1.0 schema");
 
-        let ar_val: serde_json::Value = serde_json::from_str(&fs::read_to_string(preview_dir.join("assessment-results.json")).unwrap()).unwrap();
-        oscal_engine::validate_assessment_results(&ar_val).expect("AR must conform to NIST OSCAL 1.1.0 schema");
+        let ar_val: serde_json::Value = serde_json::from_str(
+            &fs::read_to_string(preview_dir.join("assessment-results.json")).unwrap(),
+        )
+        .unwrap();
+        oscal_engine::validate_assessment_results(&ar_val)
+            .expect("AR must conform to NIST OSCAL 1.1.0 schema");
 
-        let trestle_attestation: serde_json::Value = serde_json::from_str(&fs::read_to_string(preview_dir.join("trestle-attestation.json")).unwrap()).unwrap();
+        let trestle_attestation: serde_json::Value = serde_json::from_str(
+            &fs::read_to_string(preview_dir.join("trestle-attestation.json")).unwrap(),
+        )
+        .unwrap();
         assert_eq!(trestle_attestation["generator"], "compliance-trestle");
         assert_eq!(trestle_attestation["trestle_version"], "3.4.0");
         assert_eq!(trestle_attestation["runner"], "container");
@@ -7921,7 +9481,8 @@ require_poam = false
         assert!(trestle_attestation["outputs"]["system_security_plan_sha256"].is_string());
         assert!(trestle_attestation["outputs"]["assessment_plan_sha256"].is_string());
         assert!(trestle_attestation["outputs"]["assessment_results_sha256"].is_string());
-        oscal_engine::validate_trestle_attestation(&trestle_attestation).expect("Trestle attestation must conform to schema");
+        oscal_engine::validate_trestle_attestation(&trestle_attestation)
+            .expect("Trestle attestation must conform to schema");
 
         // 2. Production assembly into prod_package_dir
         run_package(
@@ -7931,7 +9492,8 @@ require_poam = false
             policy_path,
             &prod_package_dir,
             false,
-        ).expect("run_package production assembly must succeed");
+        )
+        .expect("run_package production assembly must succeed");
 
         assert!(prod_package_dir.join("system-security-plan.json").exists());
         assert!(prod_package_dir.join("assessment-plan.json").exists());
@@ -7953,7 +9515,8 @@ require_poam = false
         fs::create_dir_all(&att_dir).unwrap();
 
         // Create staging evidence bundle
-        let ev_content = r#"{"version":"1.0.0","synthetic":false,"data":"evidence_payload_stable"}"#;
+        let ev_content =
+            r#"{"version":"1.0.0","synthetic":false,"data":"evidence_payload_stable"}"#;
         fs::write(staging_dir.join("evidence.json"), ev_content).unwrap();
 
         let rs_content = r#"{"version":"1.0.0","release_acceptance":"authorized"}"#;
@@ -7977,7 +9540,10 @@ require_poam = false
                 let bytes = fs::read(entry.path()).unwrap();
                 let mut h = sha2::Sha256::new();
                 h.update(&bytes);
-                run1_hashes.insert(entry.file_name().to_string_lossy().to_string(), format!("{:x}", sha2::Digest::finalize(h)));
+                run1_hashes.insert(
+                    entry.file_name().to_string_lossy().to_string(),
+                    format!("{:x}", sha2::Digest::finalize(h)),
+                );
             }
         }
         for entry in fs::read_dir(prod_dir_1.join("attestations")).unwrap() {
@@ -7986,7 +9552,10 @@ require_poam = false
                 let bytes = fs::read(entry.path()).unwrap();
                 let mut h = sha2::Sha256::new();
                 h.update(&bytes);
-                run1_hashes.insert(format!("attestations/{}", entry.file_name().to_string_lossy()), format!("{:x}", sha2::Digest::finalize(h)));
+                run1_hashes.insert(
+                    format!("attestations/{}", entry.file_name().to_string_lossy()),
+                    format!("{:x}", sha2::Digest::finalize(h)),
+                );
             }
         }
 
@@ -8003,7 +9572,10 @@ require_poam = false
                 let bytes = fs::read(entry.path()).unwrap();
                 let mut h = sha2::Sha256::new();
                 h.update(&bytes);
-                run2_hashes.insert(entry.file_name().to_string_lossy().to_string(), format!("{:x}", sha2::Digest::finalize(h)));
+                run2_hashes.insert(
+                    entry.file_name().to_string_lossy().to_string(),
+                    format!("{:x}", sha2::Digest::finalize(h)),
+                );
             }
         }
         for entry in fs::read_dir(prod_dir_2.join("attestations")).unwrap() {
@@ -8012,12 +9584,18 @@ require_poam = false
                 let bytes = fs::read(entry.path()).unwrap();
                 let mut h = sha2::Sha256::new();
                 h.update(&bytes);
-                run2_hashes.insert(format!("attestations/{}", entry.file_name().to_string_lossy()), format!("{:x}", sha2::Digest::finalize(h)));
+                run2_hashes.insert(
+                    format!("attestations/{}", entry.file_name().to_string_lossy()),
+                    format!("{:x}", sha2::Digest::finalize(h)),
+                );
             }
         }
 
         // Assert exact byte-for-byte SHA256 equality across all promoted artifacts
-        assert_eq!(run1_hashes, run2_hashes, "Promoted artifact hashes must be invariant");
+        assert_eq!(
+            run1_hashes, run2_hashes,
+            "Promoted artifact hashes must be invariant"
+        );
 
         // Assert no native OSCAL artifacts exist in promoted production bundle
         assert!(!prod_dir_1.join("system-security-plan.json").exists());
@@ -8033,13 +9611,21 @@ require_poam = false
     #[test]
     fn test_d7_active_falsification_mutant_fails_closed() {
         // ADR-0016 D1a & D7 Falsifiability: Active Compiler Rejection of Mutated Theorems
-        let root = Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap().parent().unwrap();
+        let root = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .unwrap()
+            .parent()
+            .unwrap();
         let mutant_fixture = if Path::new("tests/fixtures/falsified_mutant.lean").exists() {
             PathBuf::from("tests/fixtures/falsified_mutant.lean")
         } else {
             root.join("tests/fixtures/falsified_mutant.lean")
         };
-        assert!(mutant_fixture.exists(), "Falsified mutant fixture must exist at {}", mutant_fixture.display());
+        assert!(
+            mutant_fixture.exists(),
+            "Falsified mutant fixture must exist at {}",
+            mutant_fixture.display()
+        );
 
         // 1. Actively execute the Lean 4 formal compiler against the mutant theorem
         let output = Command::new("lean")
@@ -8049,8 +9635,15 @@ require_poam = false
             .expect("lean executable must be runnable");
 
         // Assert compiler actively rejects the invalid mutant theorem with exit code 1
-        assert!(!output.status.success(), "Lean compiler must reject falsified mutant with non-zero exit code");
-        assert_eq!(output.status.code(), Some(1), "Lean compiler must exit with code 1 on unprovable theorem");
+        assert!(
+            !output.status.success(),
+            "Lean compiler must reject falsified mutant with non-zero exit code"
+        );
+        assert_eq!(
+            output.status.code(),
+            Some(1),
+            "Lean compiler must exit with code 1 on unprovable theorem"
+        );
 
         let stdout_str = String::from_utf8_lossy(&output.stdout);
         assert!(
@@ -8063,8 +9656,12 @@ require_poam = false
         // A falsification mutant asserts a false theorem (e.g. `False := by decide`).
         // - When the compiler REJECTS the mutant (exit code 1), the witness SUCCEEDED -> verified: true -> Gate PASSES.
         // - If a mutant ever COMPILED (exit code 0), or if verified: false, falsifiability FAILED -> Gate FAILS-CLOSED with [E-OSCAL-010].
-        let falsifiability_established = !output.status.success() && output.status.code() == Some(1);
-        assert!(falsifiability_established, "Lean 4 compiler active rejection proves falsifiability witness succeeded");
+        let falsifiability_established =
+            !output.status.success() && output.status.code() == Some(1);
+        assert!(
+            falsifiability_established,
+            "Lean 4 compiler active rejection proves falsifiability witness succeeded"
+        );
 
         // 2a. Verified witness case: Gate PASSES when falsifiability is established
         let verified_evidence = serde_json::json!({
@@ -8137,7 +9734,8 @@ require_poam = false
 
         let verified_doc: oscal_engine::evidence::EvidenceDocument =
             serde_json::from_value(verified_evidence).expect("deserialize verified evidence");
-        let pass_outcome = evaluate_evidence_gate_rules(&verified_doc, None, true).expect("evaluate evidence gate");
+        let pass_outcome = evaluate_evidence_gate_rules(&verified_doc, None, true)
+            .expect("evaluate evidence gate");
         assert!(
             pass_outcome.violations.is_empty(),
             "Gate must PASS when mutant is rejected by compiler and verified is true: {:?}",
@@ -8148,9 +9746,13 @@ require_poam = false
         let mut defective_doc = verified_doc.clone();
         defective_doc.falsifiability[0].verified = false;
 
-        let fail_outcome = evaluate_evidence_gate_rules(&defective_doc, None, true).expect("evaluate defective evidence");
+        let fail_outcome = evaluate_evidence_gate_rules(&defective_doc, None, true)
+            .expect("evaluate defective evidence");
         assert!(
-            fail_outcome.violations.iter().any(|v| v.contains("[E-OSCAL-010]") && v.contains("failed verification")),
+            fail_outcome
+                .violations
+                .iter()
+                .any(|v| v.contains("[E-OSCAL-010]") && v.contains("failed verification")),
             "Gate must emit [E-OSCAL-010] when falsifiability witness fails verification: {:?}",
             fail_outcome.violations
         );
@@ -8171,7 +9773,11 @@ require_poam = false
         ];
         let cli = Cli::parse_from(args);
         match cli.command {
-            Commands::AssemblePcrate { manifest_path, out, policy_path } => {
+            Commands::AssemblePcrate {
+                manifest_path,
+                out,
+                policy_path,
+            } => {
                 assert_eq!(manifest_path, PathBuf::from("tests/fixtures/sha256-demo"));
                 assert_eq!(out, Some(PathBuf::from("target/test.pcrate")));
                 assert_eq!(policy_path, PathBuf::from("lean-rust.toml"));
@@ -8225,14 +9831,20 @@ name = "demo-crate"
 version = "0.1.0"
 edition = "2024"
 "#,
-        ).unwrap();
+        )
+        .unwrap();
         fs::write(crate_dir.join("src/lib.rs"), "pub fn demo() {}\n").unwrap();
 
         // 2. lean-rust.toml
         let policy_path = if Path::new("lean-rust.toml").exists() {
             PathBuf::from("lean-rust.toml")
         } else {
-            Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap().parent().unwrap().join("lean-rust.toml")
+            Path::new(env!("CARGO_MANIFEST_DIR"))
+                .parent()
+                .unwrap()
+                .parent()
+                .unwrap()
+                .join("lean-rust.toml")
         };
         fs::copy(&policy_path, ws_root.join("lean-rust.toml")).unwrap();
 
@@ -8240,7 +9852,12 @@ edition = "2024"
         let prov_path = if Path::new("PROVENANCE.toml").exists() {
             PathBuf::from("PROVENANCE.toml")
         } else {
-            Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap().parent().unwrap().join("PROVENANCE.toml")
+            Path::new(env!("CARGO_MANIFEST_DIR"))
+                .parent()
+                .unwrap()
+                .parent()
+                .unwrap()
+                .join("PROVENANCE.toml")
         };
         fs::copy(&prov_path, ws_root.join("PROVENANCE.toml")).unwrap();
 
@@ -8248,7 +9865,12 @@ edition = "2024"
         let reg_path = if Path::new("gate-rule-registry.toml").exists() {
             PathBuf::from("gate-rule-registry.toml")
         } else {
-            Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap().parent().unwrap().join("gate-rule-registry.toml")
+            Path::new(env!("CARGO_MANIFEST_DIR"))
+                .parent()
+                .unwrap()
+                .parent()
+                .unwrap()
+                .join("gate-rule-registry.toml")
         };
         fs::copy(&reg_path, ws_root.join("gate-rule-registry.toml")).unwrap();
 
@@ -8344,7 +9966,11 @@ edition = "2024"
             "violations": [],
             "evidence_sha256": ev_sha
         });
-        fs::write(artifacts_dir.join("gate-decision.json"), serde_json::to_string_pretty(&gd_doc).unwrap()).unwrap();
+        fs::write(
+            artifacts_dir.join("gate-decision.json"),
+            serde_json::to_string_pretty(&gd_doc).unwrap(),
+        )
+        .unwrap();
 
         // 8. release-status.json
         let rs_doc = serde_json::json!({
@@ -8361,7 +9987,11 @@ edition = "2024"
             "narrative_disclosures": [],
             "summary": ev_doc["summary"]
         });
-        fs::write(artifacts_dir.join("release-status.json"), serde_json::to_string_pretty(&rs_doc).unwrap()).unwrap();
+        fs::write(
+            artifacts_dir.join("release-status.json"),
+            serde_json::to_string_pretty(&rs_doc).unwrap(),
+        )
+        .unwrap();
 
         // Assemble pcrate
         let pcrate_out = test_dir.join("demo-crate.pcrate");
@@ -8371,7 +10001,8 @@ edition = "2024"
             &artifacts_dir,
             &pcrate_out,
             None,
-        ).expect("Assemble pcrate fixture");
+        )
+        .expect("Assemble pcrate fixture");
 
         pcrate_out
     }
@@ -8395,7 +10026,8 @@ edition = "2024"
         assert!(report.artifacts_count > 5);
 
         // 2. Verify pcrate hermetically offline
-        let v_report = oscal_engine::verify_pcrate(&pcrate_path, None).expect("Verify pcrate succeeds");
+        let v_report =
+            oscal_engine::verify_pcrate(&pcrate_path, None).expect("Verify pcrate succeeds");
         assert_eq!(v_report.crate_name, "demo-crate");
         assert_eq!(v_report.crate_version, "0.1.0");
         assert_eq!(v_report.gate_disposition, "pass");
@@ -8438,7 +10070,8 @@ edition = "2024"
         // Verify must fail closed on Invariant 1
         let err = oscal_engine::verify_pcrate(&tampered_pcrate, None).unwrap_err();
         assert!(
-            err.to_string().contains("Invariant 1 violation: Hash mismatch for 'source/Cargo.toml'"),
+            err.to_string()
+                .contains("Invariant 1 violation: Hash mismatch for 'source/Cargo.toml'"),
             "Expected Invariant 1 violation, got: {}",
             err
         );
@@ -8461,7 +10094,10 @@ edition = "2024"
         // Mutate PCrate.toml to have an unsupported manifest_version
         let manifest_path = unpack_dir.join("PCrate.toml");
         let content = fs::read_to_string(&manifest_path).unwrap();
-        let mutated = content.replace("manifest_version = \"1.0.0\"", "manifest_version = \"9.9.9\"");
+        let mutated = content.replace(
+            "manifest_version = \"1.0.0\"",
+            "manifest_version = \"9.9.9\"",
+        );
         fs::write(&manifest_path, mutated).unwrap();
 
         // Update MANIFEST.SHA256 so hash check passes but schema validation fails
@@ -8475,7 +10111,11 @@ edition = "2024"
                 new_lines.push(line.to_string());
             }
         }
-        fs::write(unpack_dir.join("MANIFEST.SHA256"), new_lines.join("\n") + "\n").unwrap();
+        fs::write(
+            unpack_dir.join("MANIFEST.SHA256"),
+            new_lines.join("\n") + "\n",
+        )
+        .unwrap();
 
         // Repack
         let tampered_pcrate = test_dir.join("tampered_schema.pcrate");
@@ -8491,7 +10131,8 @@ edition = "2024"
 
         let err = oscal_engine::verify_pcrate(&tampered_pcrate, None).unwrap_err();
         assert!(
-            err.to_string().contains("Invariant 2 violation: PCrate.toml schema validation failed"),
+            err.to_string()
+                .contains("Invariant 2 violation: PCrate.toml schema validation failed"),
             "Expected Invariant 2 violation, got: {}",
             err
         );
@@ -8521,11 +10162,14 @@ edition = "2024"
         let new_ev_hash = oscal_engine::compute_sha256_hex(&ev_path).unwrap();
         let pcrate_str = fs::read_to_string(unpack_dir.join("PCrate.toml")).unwrap();
         let mut manifest: oscal_engine::PCrateManifest = toml::from_str(&pcrate_str).unwrap();
-        manifest.artifacts.insert("evidence/evidence.json".to_string(), new_ev_hash.clone());
+        manifest
+            .artifacts
+            .insert("evidence/evidence.json".to_string(), new_ev_hash.clone());
         let new_pcrate_str = toml::to_string_pretty(&manifest).unwrap();
         fs::write(unpack_dir.join("PCrate.toml"), new_pcrate_str).unwrap();
 
-        let new_pcrate_hash = oscal_engine::compute_sha256_hex(&unpack_dir.join("PCrate.toml")).unwrap();
+        let new_pcrate_hash =
+            oscal_engine::compute_sha256_hex(&unpack_dir.join("PCrate.toml")).unwrap();
         let m_content = fs::read_to_string(unpack_dir.join("MANIFEST.SHA256")).unwrap();
         let mut new_lines = Vec::new();
         for line in m_content.lines() {
@@ -8537,7 +10181,11 @@ edition = "2024"
                 new_lines.push(line.to_string());
             }
         }
-        fs::write(unpack_dir.join("MANIFEST.SHA256"), new_lines.join("\n") + "\n").unwrap();
+        fs::write(
+            unpack_dir.join("MANIFEST.SHA256"),
+            new_lines.join("\n") + "\n",
+        )
+        .unwrap();
 
         // Repack
         let tampered_pcrate = test_dir.join("tampered_gate.pcrate");
@@ -8592,7 +10240,8 @@ edition = "2024"
 
         let err = oscal_engine::verify_pcrate(&tampered_pcrate, None).unwrap_err();
         assert!(
-            err.to_string().contains("Invariant 1 violation") || err.to_string().contains("Invariant 4 violation"),
+            err.to_string().contains("Invariant 1 violation")
+                || err.to_string().contains("Invariant 4 violation"),
             "Expected Invariant 1 or 4 failure, got: {}",
             err
         );
@@ -8614,26 +10263,33 @@ edition = "2024"
 
         // Inject an unresolved external attestation hash into evidence.json
         let ev_path = unpack_dir.join("evidence/evidence.json");
-        let mut ev_doc: oscal_engine::EvidenceDocument = serde_json::from_str(&fs::read_to_string(&ev_path).unwrap()).unwrap();
-        ev_doc.inheritance.push(oscal_engine::evidence::EvidenceInheritance {
-            key: "external-aws-csp".to_string(),
-            source_id: "aws-fedramp-moderate".to_string(),
-            controls: vec!["ac-1".to_string()],
-            attestation_sha256: "deadbeef00000000000000000000000000000000000000000000000000000000".to_string(),
-            attestation_expiry: "2099-01-01T00:00:00Z".to_string(),
-            is_active: true,
-        });
+        let mut ev_doc: oscal_engine::EvidenceDocument =
+            serde_json::from_str(&fs::read_to_string(&ev_path).unwrap()).unwrap();
+        ev_doc
+            .inheritance
+            .push(oscal_engine::evidence::EvidenceInheritance {
+                key: "external-aws-csp".to_string(),
+                source_id: "aws-fedramp-moderate".to_string(),
+                controls: vec!["ac-1".to_string()],
+                attestation_sha256:
+                    "deadbeef00000000000000000000000000000000000000000000000000000000".to_string(),
+                attestation_expiry: "2099-01-01T00:00:00Z".to_string(),
+                is_active: true,
+            });
         fs::write(&ev_path, serde_json::to_string_pretty(&ev_doc).unwrap()).unwrap();
 
         // Update hashes
         let new_ev_hash = oscal_engine::compute_sha256_hex(&ev_path).unwrap();
         let pcrate_str = fs::read_to_string(unpack_dir.join("PCrate.toml")).unwrap();
         let mut manifest: oscal_engine::PCrateManifest = toml::from_str(&pcrate_str).unwrap();
-        manifest.artifacts.insert("evidence/evidence.json".to_string(), new_ev_hash.clone());
+        manifest
+            .artifacts
+            .insert("evidence/evidence.json".to_string(), new_ev_hash.clone());
         let new_pcrate_str = toml::to_string_pretty(&manifest).unwrap();
         fs::write(unpack_dir.join("PCrate.toml"), new_pcrate_str).unwrap();
 
-        let new_pcrate_hash = oscal_engine::compute_sha256_hex(&unpack_dir.join("PCrate.toml")).unwrap();
+        let new_pcrate_hash =
+            oscal_engine::compute_sha256_hex(&unpack_dir.join("PCrate.toml")).unwrap();
         let m_content = fs::read_to_string(unpack_dir.join("MANIFEST.SHA256")).unwrap();
         let mut new_lines = Vec::new();
         for line in m_content.lines() {
@@ -8645,7 +10301,11 @@ edition = "2024"
                 new_lines.push(line.to_string());
             }
         }
-        fs::write(unpack_dir.join("MANIFEST.SHA256"), new_lines.join("\n") + "\n").unwrap();
+        fs::write(
+            unpack_dir.join("MANIFEST.SHA256"),
+            new_lines.join("\n") + "\n",
+        )
+        .unwrap();
 
         // Repack
         let tampered_pcrate = test_dir.join("tampered_consumed.pcrate");
@@ -8661,7 +10321,8 @@ edition = "2024"
 
         let err = oscal_engine::verify_pcrate(&tampered_pcrate, None).unwrap_err();
         assert!(
-            err.to_string().contains("Invariant 5 violation: Consumed attestation hash 'deadbeef"),
+            err.to_string()
+                .contains("Invariant 5 violation: Consumed attestation hash 'deadbeef"),
             "Expected Invariant 5 violation, got: {}",
             err
         );
@@ -8683,8 +10344,11 @@ edition = "2024"
 
         // Mutate gate-decision.json to have an open gate violation, but boundaries = []
         let gd_path = unpack_dir.join("evidence/gate-decision.json");
-        let mut gd_doc: oscal_engine::evidence::GateDecision = serde_json::from_str(&fs::read_to_string(&gd_path).unwrap()).unwrap();
-        gd_doc.violations.push("Fatal: unadjudicated defect detected".to_string());
+        let mut gd_doc: oscal_engine::evidence::GateDecision =
+            serde_json::from_str(&fs::read_to_string(&gd_path).unwrap()).unwrap();
+        gd_doc
+            .violations
+            .push("Fatal: unadjudicated defect detected".to_string());
         gd_doc.boundaries = vec![];
         fs::write(&gd_path, serde_json::to_string_pretty(&gd_doc).unwrap()).unwrap();
 
@@ -8692,11 +10356,15 @@ edition = "2024"
         let new_gd_hash = oscal_engine::compute_sha256_hex(&gd_path).unwrap();
         let pcrate_str = fs::read_to_string(unpack_dir.join("PCrate.toml")).unwrap();
         let mut manifest: oscal_engine::PCrateManifest = toml::from_str(&pcrate_str).unwrap();
-        manifest.artifacts.insert("evidence/gate-decision.json".to_string(), new_gd_hash.clone());
+        manifest.artifacts.insert(
+            "evidence/gate-decision.json".to_string(),
+            new_gd_hash.clone(),
+        );
         let new_pcrate_str = toml::to_string_pretty(&manifest).unwrap();
         fs::write(unpack_dir.join("PCrate.toml"), new_pcrate_str).unwrap();
 
-        let new_pcrate_hash = oscal_engine::compute_sha256_hex(&unpack_dir.join("PCrate.toml")).unwrap();
+        let new_pcrate_hash =
+            oscal_engine::compute_sha256_hex(&unpack_dir.join("PCrate.toml")).unwrap();
         let m_content = fs::read_to_string(unpack_dir.join("MANIFEST.SHA256")).unwrap();
         let mut new_lines = Vec::new();
         for line in m_content.lines() {
@@ -8708,7 +10376,11 @@ edition = "2024"
                 new_lines.push(line.to_string());
             }
         }
-        fs::write(unpack_dir.join("MANIFEST.SHA256"), new_lines.join("\n") + "\n").unwrap();
+        fs::write(
+            unpack_dir.join("MANIFEST.SHA256"),
+            new_lines.join("\n") + "\n",
+        )
+        .unwrap();
 
         // Repack
         let tampered_pcrate = test_dir.join("tampered_boundary.pcrate");

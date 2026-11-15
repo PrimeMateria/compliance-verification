@@ -1,9 +1,9 @@
 //! Native Continuous Authorization Evidence Engine per Milestone 6 Simplification RFC
 //! Defines the native `evidence.json` contract (11th schema), D1 Lean attestation, and D2 release status.
 
-use std::collections::BTreeMap;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
+use std::collections::BTreeMap;
 
 /// Top-level native continuous authorization evidence document
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -403,16 +403,14 @@ mod tests {
                     achieved_tier: "formal_kernel".to_string(),
                     adjudicated_state: "satisfied".to_string(),
                     tier_satisfied: true,
-                    evidence_sources: vec![
-                        EvidenceSource {
-                            tool: "lean".to_string(),
-                            passed: true,
-                            sorry_free: Some(true),
-                            reason: None,
-                            output_file: None,
-                            sha256: None,
-                        },
-                    ],
+                    evidence_sources: vec![EvidenceSource {
+                        tool: "lean".to_string(),
+                        passed: true,
+                        sorry_free: Some(true),
+                        reason: None,
+                        output_file: None,
+                        sha256: None,
+                    }],
                 },
                 EvidenceControl {
                     id: "pe-3".to_string(),
@@ -426,35 +424,38 @@ mod tests {
                 },
             ],
             waivers: vec![],
-            inheritance: vec![
-                EvidenceInheritance {
-                    key: "aws_govcloud".to_string(),
-                    source_id: "aws-govcloud-east".to_string(),
-                    controls: vec!["pe-3".to_string()],
-                    attestation_sha256: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef".to_string(),
-                    attestation_expiry: "2026-12-31T23:59:59Z".to_string(),
-                    is_active: true,
-                },
-            ],
-            falsifiability: vec![
-                EvidenceFalsifiability {
-                    control_id: "si-7".to_string(),
-                    witness_file: "attestations/si-7.lean-attestation.json".to_string(),
-                    witness_sha256: "fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210".to_string(),
-                    verified: true,
-                },
-            ],
-            ast_agnosticism_pairs: vec![
-                EvidenceAgnosticismPair {
-                    pair_id: "pair01_scalar_commutativity".to_string(),
-                    ast_a_file: "tests/fixtures/ast_pairs/pair01_scalar_commutativity_a.tex".to_string(),
-                    ast_a_hash: "deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef".to_string(),
-                    ast_b_file: "tests/fixtures/ast_pairs/pair01_scalar_commutativity_b.tex".to_string(),
-                    ast_b_hash: "deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef".to_string(),
-                    shared_evidence_hash: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855".to_string(),
-                    verified: true,
-                },
-            ],
+            inheritance: vec![EvidenceInheritance {
+                key: "aws_govcloud".to_string(),
+                source_id: "aws-govcloud-east".to_string(),
+                controls: vec!["pe-3".to_string()],
+                attestation_sha256:
+                    "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef".to_string(),
+                attestation_expiry: "2026-12-31T23:59:59Z".to_string(),
+                is_active: true,
+            }],
+            falsifiability: vec![EvidenceFalsifiability {
+                control_id: "si-7".to_string(),
+                witness_file: "attestations/si-7.lean-attestation.json".to_string(),
+                witness_sha256: "fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210"
+                    .to_string(),
+                verified: true,
+            }],
+            ast_agnosticism_pairs: vec![EvidenceAgnosticismPair {
+                pair_id: "pair01_scalar_commutativity".to_string(),
+                ast_a_file: "tests/fixtures/ast_pairs/pair01_scalar_commutativity_a.tex"
+                    .to_string(),
+                ast_a_hash:
+                    "deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef"
+                        .to_string(),
+                ast_b_file: "tests/fixtures/ast_pairs/pair01_scalar_commutativity_b.tex"
+                    .to_string(),
+                ast_b_hash:
+                    "deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef"
+                        .to_string(),
+                shared_evidence_hash:
+                    "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855".to_string(),
+                verified: true,
+            }],
             coverage: EvidenceCoverage {
                 basis: "unique_controls".to_string(),
                 numerator: 2,
@@ -491,7 +492,9 @@ mod tests {
         let res = validate_evidence(&val);
         assert!(res.is_err());
         let errs = res.unwrap_err();
-        assert!(errs.iter().any(|e| e.contains("is greater than the maximum")));
+        assert!(errs
+            .iter()
+            .any(|e| e.contains("is greater than the maximum")));
     }
 
     #[test]
@@ -539,19 +542,23 @@ mod tests {
             "2026-11-12T00:00:00Z",
             "abcdef0123456789",
             "PRIME Authorization Boundary",
-            vec![
-                NarrativeDisclosure {
-                    section: "system-characteristics.description".to_string(),
-                    boundary_entry: "PRIME continuous microkernel".to_string(),
-                    status: "disclosed".to_string(),
-                },
-            ],
+            vec![NarrativeDisclosure {
+                section: "system-characteristics.description".to_string(),
+                boundary_entry: "PRIME continuous microkernel".to_string(),
+                status: "disclosed".to_string(),
+            }],
         );
 
         assert_eq!(rel.status, "incomplete");
         assert_eq!(rel.evidence_sha256, evidence_sha256);
-        assert_eq!(rel.authorization_boundary.components, vec!["PRIME Core".to_string()]);
-        assert_eq!(rel.authorization_boundary.inherited_sources, vec!["aws-govcloud-east".to_string()]);
+        assert_eq!(
+            rel.authorization_boundary.components,
+            vec!["PRIME Core".to_string()]
+        );
+        assert_eq!(
+            rel.authorization_boundary.inherited_sources,
+            vec!["aws-govcloud-east".to_string()]
+        );
 
         // When boundary disclosures are empty, status transitions to authorized
         let rel_authorized = create_release_status(

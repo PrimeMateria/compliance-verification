@@ -74,7 +74,8 @@ pub struct MutationRecipe {
 }
 
 /// Allowlist of tool-to-diagnostic kind pairings
-pub const LEAN4_REJECTION_KINDS: &[&str] = &["type_mismatch", "unknown_constant", "kernel_rejected"];
+pub const LEAN4_REJECTION_KINDS: &[&str] =
+    &["type_mismatch", "unknown_constant", "kernel_rejected"];
 pub const KANI_REJECTION_KINDS: &[&str] = &["kani_unwind_overflow", "kani_assertion_failed"];
 
 /// Permitted structural mutation strategies (negate_conclusion is strictly forbidden per ADR-0016)
@@ -87,12 +88,8 @@ pub const ALLOWED_MUTATION_STRATEGIES: &[&str] = &[
 
 /// Valid directional relational operator inversion pairs for swap_equality_direction
 /// Note: '=' and '!=' are strictly excluded because '=' -> '!=' is negation, not directional inversion.
-pub const VALID_OPERATOR_INVERSION_PAIRS: &[(&str, &str)] = &[
-    ("<=", ">="),
-    (">=", "<="),
-    ("<", ">"),
-    (">", "<"),
-];
+pub const VALID_OPERATOR_INVERSION_PAIRS: &[(&str, &str)] =
+    &[("<=", ">="), (">=", "<="), ("<", ">"), (">", "<")];
 
 /// Valid target positions within a theorem
 pub const VALID_TARGET_POSITIONS: &[&str] = &["precondition", "postcondition"];
@@ -139,7 +136,10 @@ pub fn verify_gate_rule_registry_semantics(reg: &GateRuleRegistry) -> Result<(),
                     .map(|p| p.exists())
                     .unwrap_or(false);
             if !exists {
-                errors.push(format!("FX-08 fixture_path does not exist on disk: '{}'", fix.fixture_path));
+                errors.push(format!(
+                    "FX-08 fixture_path does not exist on disk: '{}'",
+                    fix.fixture_path
+                ));
             }
         }
     }
@@ -152,7 +152,10 @@ pub fn verify_gate_rule_registry_semantics(reg: &GateRuleRegistry) -> Result<(),
     for (wid, w) in &reg.formal_kernel_witnesses {
         // Enforce W-[CONTROL]-[INDEX] naming pattern
         if !wid.starts_with("W-") {
-            errors.push(format!("{}: Witness ID must start with 'W-', found '{}'", wid, wid));
+            errors.push(format!(
+                "{}: Witness ID must start with 'W-', found '{}'",
+                wid, wid
+            ));
         }
 
         // Must yield 'rejected' outcomes ONLY
@@ -162,7 +165,9 @@ pub fn verify_gate_rule_registry_semantics(reg: &GateRuleRegistry) -> Result<(),
                 wid, w.witness_expected_outcome
             ));
         } else {
-            *control_rejected_counts.entry(w.control_id.clone()).or_insert(0) += 1;
+            *control_rejected_counts
+                .entry(w.control_id.clone())
+                .or_insert(0) += 1;
         }
 
         // Check negate_conclusion elimination
@@ -186,13 +191,17 @@ pub fn verify_gate_rule_registry_semantics(reg: &GateRuleRegistry) -> Result<(),
             ));
         }
 
-        if w.mutation_recipe.strategy == "weaken_precondition" && w.mutation_recipe.target_position != "precondition" {
+        if w.mutation_recipe.strategy == "weaken_precondition"
+            && w.mutation_recipe.target_position != "precondition"
+        {
             errors.push(format!(
                 "{}: Strategy 'weaken_precondition' requires target_position = 'precondition', found '{}'",
                 wid, w.mutation_recipe.target_position
             ));
         }
-        if w.mutation_recipe.strategy == "strengthen_postcondition" && w.mutation_recipe.target_position != "postcondition" {
+        if w.mutation_recipe.strategy == "strengthen_postcondition"
+            && w.mutation_recipe.target_position != "postcondition"
+        {
             errors.push(format!(
                 "{}: Strategy 'strengthen_postcondition' requires target_position = 'postcondition', found '{}'",
                 wid, w.mutation_recipe.target_position
@@ -218,7 +227,9 @@ pub fn verify_gate_rule_registry_semantics(reg: &GateRuleRegistry) -> Result<(),
                             let muta_f64 = m_trimmed.parse::<f64>();
 
                             let both_int = orig_i64.is_ok() && muta_i64.is_ok();
-                            let both_float = orig_f64.is_ok() && muta_f64.is_ok() && (o_trimmed.contains('.') || m_trimmed.contains('.'));
+                            let both_float = orig_f64.is_ok()
+                                && muta_f64.is_ok()
+                                && (o_trimmed.contains('.') || m_trimmed.contains('.'));
 
                             if !both_int && !both_float {
                                 errors.push(format!(
@@ -229,7 +240,10 @@ pub fn verify_gate_rule_registry_semantics(reg: &GateRuleRegistry) -> Result<(),
                         }
                     }
                     _ => {
-                        errors.push(format!("{}: mutate_constant requires 'original' and 'mutated' parameters", wid));
+                        errors.push(format!(
+                            "{}: mutate_constant requires 'original' and 'mutated' parameters",
+                            wid
+                        ));
                     }
                 }
             }
@@ -255,7 +269,10 @@ pub fn verify_gate_rule_registry_semantics(reg: &GateRuleRegistry) -> Result<(),
             }
             "weaken_precondition" | "strengthen_postcondition" => {
                 if w.mutation_recipe.target_symbol.trim().is_empty() {
-                    errors.push(format!("{}: {} requires a non-empty target_symbol", wid, w.mutation_recipe.strategy));
+                    errors.push(format!(
+                        "{}: {} requires a non-empty target_symbol",
+                        wid, w.mutation_recipe.strategy
+                    ));
                 }
                 let orig = w.mutation_recipe.params.get("original");
                 let muta = w.mutation_recipe.params.get("mutated");
@@ -266,7 +283,10 @@ pub fn verify_gate_rule_registry_semantics(reg: &GateRuleRegistry) -> Result<(),
                         }
                     }
                     _ => {
-                        errors.push(format!("{}: {} requires 'original' and 'mutated' parameters", wid, w.mutation_recipe.strategy));
+                        errors.push(format!(
+                            "{}: {} requires 'original' and 'mutated' parameters",
+                            wid, w.mutation_recipe.strategy
+                        ));
                     }
                 }
             }
@@ -340,7 +360,10 @@ pub fn verify_gate_rule_registry_semantics(reg: &GateRuleRegistry) -> Result<(),
     // 5. Kernel Sensitivity Witnesses Validation
     for (sid, s) in &reg.kernel_sensitivity_witnesses {
         if !sid.starts_with("S-") {
-            errors.push(format!("{}: Sensitivity witness ID must start with 'S-', found '{}'", sid, sid));
+            errors.push(format!(
+                "{}: Sensitivity witness ID must start with 'S-', found '{}'",
+                sid, sid
+            ));
         }
         sensitivity_controls.insert(s.control_id.clone());
     }
@@ -382,15 +405,25 @@ mod tests {
     #[test]
     fn test_canonical_gate_rule_registry_passes_validation() {
         let toml_str = include_str!("../../../gate-rule-registry.toml");
-        let reg: GateRuleRegistry = toml::from_str(toml_str).expect("Canonical registry must parse as TOML");
-        
+        let reg: GateRuleRegistry =
+            toml::from_str(toml_str).expect("Canonical registry must parse as TOML");
+
         let val_result = verify_gate_rule_registry_semantics(&reg);
-        assert!(val_result.is_ok(), "Canonical registry must pass semantic verification: {:?}", val_result);
+        assert!(
+            val_result.is_ok(),
+            "Canonical registry must pass semantic verification: {:?}",
+            val_result
+        );
 
         // Also test JSON Schema validation
-        let val_json: serde_json::Value = serde_json::to_value(&reg).expect("Serialization to JSON Value");
+        let val_json: serde_json::Value =
+            serde_json::to_value(&reg).expect("Serialization to JSON Value");
         let schema_result = crate::validate_gate_rule_registry(&val_json);
-        assert!(schema_result.is_ok(), "Canonical registry must validate against JSON schema: {:?}", schema_result);
+        assert!(
+            schema_result.is_ok(),
+            "Canonical registry must validate against JSON schema: {:?}",
+            schema_result
+        );
     }
 
     #[test]
@@ -402,7 +435,10 @@ mod tests {
         let res = verify_gate_rule_registry_semantics(&reg);
         assert!(res.is_err(), "Schema version mismatch must fail validation");
         let errs = res.unwrap_err();
-        assert!(errs.iter().any(|e| e.contains("Registry schema_version mismatch") && e.contains("expected '2.0.0'")));
+        assert!(errs
+            .iter()
+            .any(|e| e.contains("Registry schema_version mismatch")
+                && e.contains("expected '2.0.0'")));
     }
 
     #[test]
@@ -415,7 +451,10 @@ mod tests {
             fx.fixture_diagnostic_kind = "type_mismatch".to_string();
         }
         let res1 = verify_gate_rule_registry_semantics(&reg);
-        assert!(res1.unwrap_err().iter().any(|e| e.contains("no_tool_diagnostic")));
+        assert!(res1
+            .unwrap_err()
+            .iter()
+            .any(|e| e.contains("no_tool_diagnostic")));
 
         // 2. Omit policy engine fired
         let mut reg2: GateRuleRegistry = toml::from_str(toml_str).unwrap();
@@ -423,7 +462,10 @@ mod tests {
             fx.policy_engine_fired = false;
         }
         let res2 = verify_gate_rule_registry_semantics(&reg2);
-        assert!(res2.unwrap_err().iter().any(|e| e.contains("policy_engine_fired = true")));
+        assert!(res2
+            .unwrap_err()
+            .iter()
+            .any(|e| e.contains("policy_engine_fired = true")));
     }
 
     #[test]
@@ -436,17 +478,26 @@ mod tests {
             w.mutation_recipe.strategy = "weaken_precondition".to_string();
         }
         let res1 = verify_gate_rule_registry_semantics(&reg);
-        assert!(res1.unwrap_err().iter().any(|e| e.contains("W-SI71-02 strategy must be 'mutate_constant'")));
+        assert!(res1
+            .unwrap_err()
+            .iter()
+            .any(|e| e.contains("W-SI71-02 strategy must be 'mutate_constant'")));
 
         // 2. Un-normalized expression "3^4" fails literal parse check
         let mut reg2: GateRuleRegistry = toml::from_str(toml_str).unwrap();
         if let Some(w) = reg2.formal_kernel_witnesses.get_mut("W-SI71-02") {
-            w.mutation_recipe.params.insert("original".to_string(), "3^4".to_string());
-            w.mutation_recipe.params.insert("mutated".to_string(), "3^4 + 1".to_string());
+            w.mutation_recipe
+                .params
+                .insert("original".to_string(), "3^4".to_string());
+            w.mutation_recipe
+                .params
+                .insert("mutated".to_string(), "3^4 + 1".to_string());
         }
         let res2 = verify_gate_rule_registry_semantics(&reg2);
         let errs2 = res2.unwrap_err();
-        assert!(errs2.iter().any(|e| e.contains("requires evaluated primitive numeric literals") && e.contains("3^4")));
+        assert!(errs2.iter().any(
+            |e| e.contains("requires evaluated primitive numeric literals") && e.contains("3^4")
+        ));
     }
 
     #[test]
@@ -459,7 +510,10 @@ mod tests {
             w.mutation_recipe.target_position = "invalid_pos".to_string();
         }
         let res1 = verify_gate_rule_registry_semantics(&reg);
-        assert!(res1.unwrap_err().iter().any(|e| e.contains("Invalid target_position")));
+        assert!(res1
+            .unwrap_err()
+            .iter()
+            .any(|e| e.contains("Invalid target_position")));
 
         // 2. Position mismatch for weaken_precondition
         let mut reg2: GateRuleRegistry = toml::from_str(toml_str).unwrap();
@@ -468,7 +522,10 @@ mod tests {
             w.mutation_recipe.target_position = "postcondition".to_string();
         }
         let res2 = verify_gate_rule_registry_semantics(&reg2);
-        assert!(res2.unwrap_err().iter().any(|e| e.contains("requires target_position = 'precondition'")));
+        assert!(res2
+            .unwrap_err()
+            .iter()
+            .any(|e| e.contains("requires target_position = 'precondition'")));
     }
 
     #[test]
@@ -479,13 +536,24 @@ mod tests {
         // Attempt to smuggle '= -> !=' as swap_equality_direction (negation hole)
         if let Some(w) = reg.formal_kernel_witnesses.get_mut("W-SI71-01") {
             w.mutation_recipe.strategy = "swap_equality_direction".to_string();
-            w.mutation_recipe.params.insert("original".to_string(), "=".to_string());
-            w.mutation_recipe.params.insert("mutated".to_string(), "!=".to_string());
+            w.mutation_recipe
+                .params
+                .insert("original".to_string(), "=".to_string());
+            w.mutation_recipe
+                .params
+                .insert("mutated".to_string(), "!=".to_string());
         }
         let res = verify_gate_rule_registry_semantics(&reg);
-        assert!(res.is_err(), "'=' -> '!=' must be rejected as a negation hole");
+        assert!(
+            res.is_err(),
+            "'=' -> '!=' must be rejected as a negation hole"
+        );
         let errs = res.unwrap_err();
-        assert!(errs.iter().any(|e| e.contains("Equality '=' and '!=' are strictly disallowed as negation holes")));
+        assert!(
+            errs.iter()
+                .any(|e| e
+                    .contains("Equality '=' and '!=' are strictly disallowed as negation holes"))
+        );
     }
 
     #[test]
@@ -499,7 +567,9 @@ mod tests {
         let res = verify_gate_rule_registry_semantics(&reg);
         assert!(res.is_err(), "negate_conclusion must be rejected");
         let errs = res.unwrap_err();
-        assert!(errs.iter().any(|e| e.contains("strictly forbidden") && e.contains("ADR-0016")));
+        assert!(errs
+            .iter()
+            .any(|e| e.contains("strictly forbidden") && e.contains("ADR-0016")));
     }
 
     #[test]
@@ -509,14 +579,20 @@ mod tests {
         // Test invalid operator pair
         if let Some(w) = reg.formal_kernel_witnesses.get_mut("W-SI71-01") {
             w.mutation_recipe.strategy = "swap_equality_direction".to_string();
-            w.mutation_recipe.params.insert("original".to_string(), "<=".to_string());
-            w.mutation_recipe.params.insert("mutated".to_string(), "invalid_op".to_string());
+            w.mutation_recipe
+                .params
+                .insert("original".to_string(), "<=".to_string());
+            w.mutation_recipe
+                .params
+                .insert("mutated".to_string(), "invalid_op".to_string());
         }
 
         let res = verify_gate_rule_registry_semantics(&reg);
         assert!(res.is_err(), "Invalid operator pair must fail");
         let errs = res.unwrap_err();
-        assert!(errs.iter().any(|e| e.contains("directional operator inversion pair")));
+        assert!(errs
+            .iter()
+            .any(|e| e.contains("directional operator inversion pair")));
     }
 
     #[test]
@@ -531,7 +607,9 @@ mod tests {
         let res = verify_gate_rule_registry_semantics(&reg);
         assert!(res.is_err(), "Mismatched tool diagnostic pairing must fail");
         let errs = res.unwrap_err();
-        assert!(errs.iter().any(|e| e.contains("cannot use rejection kind 'kani_unwind_overflow'")));
+        assert!(errs
+            .iter()
+            .any(|e| e.contains("cannot use rejection kind 'kani_unwind_overflow'")));
     }
 
     #[test]
@@ -546,21 +624,33 @@ mod tests {
                 target_tool: "lean4".to_string(),
                 source_path: "source/lean/PRIME/Account.lean".to_string(),
                 witness_path: "evidence/attestations/sensitivity/S_AC2_01.lean".to_string(),
-                theorem_ast_sha256: "0000000000000000000000000000000000000000000000000000000000000000".to_string(),
-                witness_module_sha256: "0000000000000000000000000000000000000000000000000000000000000000".to_string(),
+                theorem_ast_sha256:
+                    "0000000000000000000000000000000000000000000000000000000000000000".to_string(),
+                witness_module_sha256:
+                    "0000000000000000000000000000000000000000000000000000000000000000".to_string(),
                 witness_expected_outcome: "proved".to_string(),
                 mutation_recipe: MutationRecipe {
                     strategy: "strengthen_precondition".to_string(),
                     target_symbol: "session_timeout".to_string(),
                     target_position: "precondition".to_string(),
-                    params: [("original".to_string(), "15".to_string()), ("mutated".to_string(), "10".to_string())].into_iter().collect(),
+                    params: [
+                        ("original".to_string(), "15".to_string()),
+                        ("mutated".to_string(), "10".to_string()),
+                    ]
+                    .into_iter()
+                    .collect(),
                 },
             },
         );
 
         let res = verify_gate_rule_registry_semantics(&reg);
-        assert!(res.is_err(), "Control with only proved sensitivity witness must fail E-OSCAL-010");
+        assert!(
+            res.is_err(),
+            "Control with only proved sensitivity witness must fail E-OSCAL-010"
+        );
         let errs = res.unwrap_err();
-        assert!(errs.iter().any(|e| e.contains("[E-OSCAL-010]") && e.contains("AC-2") && e.contains("lacks required rejected falsifiability witness")));
+        assert!(errs.iter().any(|e| e.contains("[E-OSCAL-010]")
+            && e.contains("AC-2")
+            && e.contains("lacks required rejected falsifiability witness")));
     }
 }

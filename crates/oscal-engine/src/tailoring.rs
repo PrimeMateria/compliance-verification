@@ -138,7 +138,10 @@ pub fn load_catalog_control_ids_from_file(path: &Path) -> Result<BTreeSet<String
         .map_err(|e| format!("Failed to parse catalog JSON {}: {}", path.display(), e))?;
     let ids = extract_control_ids_from_catalog_json(&val);
     if ids.is_empty() {
-        Err(format!("Catalog file {} contains zero controls", path.display()))
+        Err(format!(
+            "Catalog file {} contains zero controls",
+            path.display()
+        ))
     } else {
         Ok(ids)
     }
@@ -240,7 +243,10 @@ pub fn evaluate_tailoring_overlay(
 
     // 5. Fail closed if tailored baseline is empty
     if errors.is_empty() && c_tailored.is_empty() {
-        errors.push("Tailored baseline C_tailored is empty; coverage denominator cannot be zero".to_string());
+        errors.push(
+            "Tailored baseline C_tailored is empty; coverage denominator cannot be zero"
+                .to_string(),
+        );
     }
 
     if errors.is_empty() {
@@ -393,7 +399,10 @@ pub fn derive_tailored_baseline_from_resolved_catalog(
 ) -> Result<TailoredBaselineReport, String> {
     let control_ids = extract_control_ids_from_catalog_json(resolved_catalog);
     if control_ids.is_empty() {
-        return Err("Resolved catalog contains zero controls; tailored baseline cannot be empty".to_string());
+        return Err(
+            "Resolved catalog contains zero controls; tailored baseline cannot be empty"
+                .to_string(),
+        );
     }
     let title = resolved_catalog
         .get("catalog")
@@ -418,7 +427,9 @@ pub fn synthesize_profile_from_tailoring(
     catalog_path: &Path,
     injected_now: Option<DateTime<Utc>>,
 ) -> serde_json::Value {
-    eprintln!("\x1b[1;33m[DEPRECATION: catalog.tailoring is deprecated; migrate to OSCAL Profile]\x1b[0m");
+    eprintln!(
+        "\x1b[1;33m[DEPRECATION: catalog.tailoring is deprecated; migrate to OSCAL Profile]\x1b[0m"
+    );
 
     let now = get_effective_clock(injected_now);
     let now_str = now.to_rfc3339();
@@ -430,11 +441,17 @@ pub fn synthesize_profile_from_tailoring(
     excluded.extend(tailoring.exclude_controls.clone());
 
     // Canonicalize IDs for uniform selector matching
-    let mut normalized_in_scope: Vec<String> = in_scope.into_iter().map(|c| canonicalize_control_id(&c)).collect();
+    let mut normalized_in_scope: Vec<String> = in_scope
+        .into_iter()
+        .map(|c| canonicalize_control_id(&c))
+        .collect();
     normalized_in_scope.sort();
     normalized_in_scope.dedup();
 
-    let mut normalized_excluded: Vec<String> = excluded.into_iter().map(|c| canonicalize_control_id(&c)).collect();
+    let mut normalized_excluded: Vec<String> = excluded
+        .into_iter()
+        .map(|c| canonicalize_control_id(&c))
+        .collect();
     normalized_excluded.sort();
     normalized_excluded.dedup();
 
@@ -502,7 +519,10 @@ pub fn synthesize_workspace_declared_profile(
     let now = get_effective_clock(injected_now);
     let now_str = now.to_rfc3339();
 
-    let mut sorted_ids: Vec<String> = control_ids.iter().map(|c| canonicalize_control_id(c)).collect();
+    let mut sorted_ids: Vec<String> = control_ids
+        .iter()
+        .map(|c| canonicalize_control_id(c))
+        .collect();
     sorted_ids.sort();
     sorted_ids.dedup();
 
@@ -594,7 +614,10 @@ mod tests {
         let report2 = evaluate_tailoring_overlay(&tailoring_catalog_base, &catalog)
             .expect("Tailoring overlay with full catalog baseline succeeds");
         assert_eq!(report2.denominator, 7);
-        assert!(!report2.c_tailored.contains("pe-1"), "PE-1 omitted from denominator");
+        assert!(
+            !report2.c_tailored.contains("pe-1"),
+            "PE-1 omitted from denominator"
+        );
     }
 
     #[test]
@@ -609,7 +632,8 @@ mod tests {
         let errs = evaluate_tailoring_overlay(&tailoring, &catalog)
             .expect_err("Conflicting tailoring should fail closed");
         assert!(
-            errs.iter().any(|e| e.contains("Conflicting tailoring declaration") && e.contains("si-7.1")),
+            errs.iter()
+                .any(|e| e.contains("Conflicting tailoring declaration") && e.contains("si-7.1")),
             "Expected conflicting tailoring diagnostic, got: {:?}",
             errs
         );
@@ -626,7 +650,8 @@ mod tests {
         let errs = evaluate_tailoring_overlay(&tailoring, &catalog)
             .expect_err("Unknown control should fail closed");
         assert!(
-            errs.iter().any(|e| e.contains("Tailoring in-scope references unknown control 'UNKNOWN-99'")),
+            errs.iter()
+                .any(|e| e.contains("Tailoring in-scope references unknown control 'UNKNOWN-99'")),
             "Expected unknown control error, got: {:?}",
             errs
         );
@@ -643,7 +668,8 @@ mod tests {
         let errs = evaluate_tailoring_overlay(&tailoring, &catalog)
             .expect_err("Duplicate in-scope controls should fail");
         assert!(
-            errs.iter().any(|e| e.contains("Duplicate in-scope control declaration")),
+            errs.iter()
+                .any(|e| e.contains("Duplicate in-scope control declaration")),
             "Expected duplicate in-scope error, got: {:?}",
             errs
         );
@@ -662,7 +688,8 @@ mod tests {
         let errs = evaluate_tailoring_overlay(&tailoring, &single_item_catalog)
             .expect_err("Empty tailored baseline should fail closed");
         assert!(
-            errs.iter().any(|e| e.contains("Tailored baseline C_tailored is empty")),
+            errs.iter()
+                .any(|e| e.contains("Tailored baseline C_tailored is empty")),
             "Expected empty baseline error, got: {:?}",
             errs
         );
@@ -671,7 +698,9 @@ mod tests {
     #[test]
     fn test_inheritance_active_and_expired_partitioning() {
         let catalog = mock_catalog_controls();
-        let now = DateTime::parse_from_rfc3339("2026-11-10T00:00:00Z").unwrap().with_timezone(&Utc);
+        let now = DateTime::parse_from_rfc3339("2026-11-10T00:00:00Z")
+            .unwrap()
+            .with_timezone(&Utc);
 
         let mut map = HashMap::new();
         map.insert(
@@ -708,19 +737,39 @@ mod tests {
 
     #[test]
     fn test_deterministic_expired_poam_item_synthesis() {
-        let now = DateTime::parse_from_rfc3339("2026-11-10T12:00:00Z").unwrap().with_timezone(&Utc);
-        let item1 = synthesize_expired_attestation_poam_item("sc-13", "aws_govcloud", "2025-01-01T00:00:00Z", now);
-        let item2 = synthesize_expired_attestation_poam_item("sc-13", "aws_govcloud", "2025-01-01T00:00:00Z", now);
+        let now = DateTime::parse_from_rfc3339("2026-11-10T12:00:00Z")
+            .unwrap()
+            .with_timezone(&Utc);
+        let item1 = synthesize_expired_attestation_poam_item(
+            "sc-13",
+            "aws_govcloud",
+            "2025-01-01T00:00:00Z",
+            now,
+        );
+        let item2 = synthesize_expired_attestation_poam_item(
+            "sc-13",
+            "aws_govcloud",
+            "2025-01-01T00:00:00Z",
+            now,
+        );
 
-        assert_eq!(item1.uuid, item2.uuid, "UUIDv5 must be strictly deterministic across calls");
+        assert_eq!(
+            item1.uuid, item2.uuid,
+            "UUIDv5 must be strictly deterministic across calls"
+        );
         let json1 = serde_json::to_string(&item1).unwrap();
         let json2 = serde_json::to_string(&item2).unwrap();
-        assert_eq!(json1, json2, "POA&M JSON serialization must be byte-for-byte deterministic");
+        assert_eq!(
+            json1, json2,
+            "POA&M JSON serialization must be byte-for-byte deterministic"
+        );
     }
 
     #[test]
     fn test_clock_injection_override() {
-        let custom_time = DateTime::parse_from_rfc3339("2028-01-01T00:00:00Z").unwrap().with_timezone(&Utc);
+        let custom_time = DateTime::parse_from_rfc3339("2028-01-01T00:00:00Z")
+            .unwrap()
+            .with_timezone(&Utc);
         let eff = get_effective_clock(Some(custom_time));
         assert_eq!(eff, custom_time);
 
@@ -744,25 +793,36 @@ mod tests {
             scope: None,
         };
         let cat_path = Path::new("schemas/catalogs/NIST_SP_800-53_rev5_catalog.json");
-        let now = DateTime::parse_from_rfc3339("2026-11-11T12:00:00Z").unwrap().with_timezone(&Utc);
+        let now = DateTime::parse_from_rfc3339("2026-11-11T12:00:00Z")
+            .unwrap()
+            .with_timezone(&Utc);
 
         let synth = synthesize_profile_from_tailoring(&tailoring, cat_path, Some(now));
-        assert!(crate::validate_profile(&synth).is_ok(), "Synthetic profile must strictly validate against official NIST OSCAL Profile schema");
+        assert!(
+            crate::validate_profile(&synth).is_ok(),
+            "Synthetic profile must strictly validate against official NIST OSCAL Profile schema"
+        );
 
         let profile_obj = synth["profile"].as_object().expect("profile object");
         let metadata = profile_obj["metadata"].as_object().expect("metadata");
         let props = metadata["props"].as_array().expect("props array");
-        assert!(props.iter().any(|p| p["name"] == "tailoring-mode" && p["value"] == "deprecated-shim"));
+        assert!(props
+            .iter()
+            .any(|p| p["name"] == "tailoring-mode" && p["value"] == "deprecated-shim"));
 
         let imports = profile_obj["imports"].as_array().expect("imports array");
         assert_eq!(imports.len(), 1);
-        let inc = imports[0]["include-controls"][0]["with-ids"].as_array().expect("with-ids");
+        let inc = imports[0]["include-controls"][0]["with-ids"]
+            .as_array()
+            .expect("with-ids");
         let inc_ids: Vec<&str> = inc.iter().filter_map(|v| v.as_str()).collect();
         assert!(inc_ids.contains(&"ac-1"));
         assert!(inc_ids.contains(&"si-7"));
         assert!(inc_ids.contains(&"ca-2"));
 
-        let exc = imports[0]["exclude-controls"][0]["with-ids"].as_array().expect("with-ids");
+        let exc = imports[0]["exclude-controls"][0]["with-ids"]
+            .as_array()
+            .expect("with-ids");
         let exc_ids: Vec<&str> = exc.iter().filter_map(|v| v.as_str()).collect();
         assert!(exc_ids.contains(&"si-7.1"));
     }
@@ -771,15 +831,22 @@ mod tests {
     fn test_workspace_declared_profile_synthesizes_valid_profile() {
         let controls = vec!["SI-7".to_string(), "CM-7".to_string(), "CA-2".to_string()];
         let cat_path = Path::new("schemas/catalogs/NIST_SP_800-53_rev5_catalog.json");
-        let now = DateTime::parse_from_rfc3339("2026-11-11T12:00:00Z").unwrap().with_timezone(&Utc);
+        let now = DateTime::parse_from_rfc3339("2026-11-11T12:00:00Z")
+            .unwrap()
+            .with_timezone(&Utc);
 
         let synth = synthesize_workspace_declared_profile(&controls, cat_path, Some(now));
-        assert!(crate::validate_profile(&synth).is_ok(), "Workspace declared profile must validate against schema");
+        assert!(
+            crate::validate_profile(&synth).is_ok(),
+            "Workspace declared profile must validate against schema"
+        );
 
         let profile_obj = synth["profile"].as_object().expect("profile");
         let metadata = profile_obj["metadata"].as_object().expect("metadata");
         let props = metadata["props"].as_array().expect("props");
-        assert!(props.iter().any(|p| p["name"] == "baseline-mode" && p["value"] == "declared-controls"));
+        assert!(props
+            .iter()
+            .any(|p| p["name"] == "baseline-mode" && p["value"] == "declared-controls"));
     }
 
     #[test]
@@ -796,7 +863,9 @@ mod tests {
             scope: None,
         };
         let cat_path = Path::new("schemas/catalogs/NIST_SP_800-53_rev5_catalog.json");
-        let now = DateTime::parse_from_rfc3339("2026-11-11T12:00:00Z").unwrap().with_timezone(&Utc);
+        let now = DateTime::parse_from_rfc3339("2026-11-11T12:00:00Z")
+            .unwrap()
+            .with_timezone(&Utc);
 
         let synth = synthesize_profile_from_tailoring(&tailoring, cat_path, Some(now));
         let profile_file = test_dir.join("profile.json");

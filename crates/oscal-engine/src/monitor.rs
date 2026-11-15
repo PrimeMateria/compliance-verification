@@ -290,7 +290,9 @@ pub fn execute_monitor(config: &MonitorConfig) -> MonitorReport {
                         name: "catalog_drift".to_string(),
                         passed: false,
                         violation_code: None,
-                        message: "PROVENANCE.toml does not declare 'nist_sp_800_53_rev5_catalog_sha256'".to_string(),
+                        message:
+                            "PROVENANCE.toml does not declare 'nist_sp_800_53_rev5_catalog_sha256'"
+                                .to_string(),
                         details: serde_json::json!({ "error": "malformed_provenance" }),
                     });
                     has_operational_error = true;
@@ -351,7 +353,13 @@ pub fn execute_monitor(config: &MonitorConfig) -> MonitorReport {
         }
 
         if let Some(hist_ar) = found_history_ar {
-            evaluate_ar_staleness(&hist_ar, config, &mut checks, &mut has_policy_violation, &mut has_operational_error);
+            evaluate_ar_staleness(
+                &hist_ar,
+                config,
+                &mut checks,
+                &mut has_policy_violation,
+                &mut has_operational_error,
+            );
         } else {
             checks.push(MonitorCheckResult {
                 name: "evidence_staleness".to_string(),
@@ -366,7 +374,13 @@ pub fn execute_monitor(config: &MonitorConfig) -> MonitorReport {
             has_operational_error = true;
         }
     } else {
-        evaluate_ar_staleness(&ar_path, config, &mut checks, &mut has_policy_violation, &mut has_operational_error);
+        evaluate_ar_staleness(
+            &ar_path,
+            config,
+            &mut checks,
+            &mut has_policy_violation,
+            &mut has_operational_error,
+        );
     }
 
     // 3. Attestation Expiry Evaluation [E-OSCAL-012]
@@ -403,7 +417,8 @@ pub fn execute_monitor(config: &MonitorConfig) -> MonitorReport {
                             name: "attestation_expiry".to_string(),
                             passed: true,
                             violation_code: None,
-                            message: "All declared CSP inheritance attestations are active".to_string(),
+                            message: "All declared CSP inheritance attestations are active"
+                                .to_string(),
                             details: serde_json::json!({ "status": "active" }),
                         });
                     } else {
@@ -426,7 +441,9 @@ pub fn execute_monitor(config: &MonitorConfig) -> MonitorReport {
                             name: "attestation_expiry".to_string(),
                             passed: false,
                             violation_code: Some(
-                                OscalErrorCode::ExpiredInheritanceAttestation.as_str().to_string(),
+                                OscalErrorCode::ExpiredInheritanceAttestation
+                                    .as_str()
+                                    .to_string(),
                             ),
                             message: msg,
                             details: serde_json::json!({
@@ -450,7 +467,11 @@ pub fn execute_monitor(config: &MonitorConfig) -> MonitorReport {
                         name: "attestation_expiry".to_string(),
                         passed: false,
                         violation_code: None,
-                        message: format!("Failed to parse gate policy '{}': {}", policy_path.display(), e),
+                        message: format!(
+                            "Failed to parse gate policy '{}': {}",
+                            policy_path.display(),
+                            e
+                        ),
                         details: serde_json::json!({ "error": e.to_string() }),
                     });
                     has_operational_error = true;
@@ -461,7 +482,11 @@ pub fn execute_monitor(config: &MonitorConfig) -> MonitorReport {
                     name: "attestation_expiry".to_string(),
                     passed: false,
                     violation_code: None,
-                    message: format!("Failed to read policy file '{}': {}", policy_path.display(), e),
+                    message: format!(
+                        "Failed to read policy file '{}': {}",
+                        policy_path.display(),
+                        e
+                    ),
                     details: serde_json::json!({ "io_error": e.to_string() }),
                 });
                 has_operational_error = true;
@@ -473,7 +498,13 @@ pub fn execute_monitor(config: &MonitorConfig) -> MonitorReport {
     let poam_path = resolved_artifacts_dir.join("poam.json");
 
     if poam_path.exists() {
-        evaluate_poam_overdue(&poam_path, config, &mut checks, &mut has_policy_violation, &mut has_operational_error);
+        evaluate_poam_overdue(
+            &poam_path,
+            config,
+            &mut checks,
+            &mut has_policy_violation,
+            &mut has_operational_error,
+        );
     } else if config.require_poam {
         checks.push(MonitorCheckResult {
             name: "poam_overdue_sla".to_string(),
@@ -491,7 +522,9 @@ pub fn execute_monitor(config: &MonitorConfig) -> MonitorReport {
             name: "poam_overdue_sla".to_string(),
             passed: true,
             violation_code: None,
-            message: "No active POA&M artifact found (require_poam = false); zero open items expected".to_string(),
+            message:
+                "No active POA&M artifact found (require_poam = false); zero open items expected"
+                    .to_string(),
             details: serde_json::json!({ "status": "clean", "active_overdue": 0 }),
         });
     }
@@ -639,7 +672,11 @@ fn evaluate_ar_staleness(
                 name: "evidence_staleness".to_string(),
                 passed: false,
                 violation_code: None,
-                message: format!("Failed to read assessment results '{}': {}", ar_path.display(), e),
+                message: format!(
+                    "Failed to read assessment results '{}': {}",
+                    ar_path.display(),
+                    e
+                ),
                 details: serde_json::json!({ "io_error": e.to_string() }),
             });
             *has_operational_error = true;
@@ -698,10 +735,8 @@ fn evaluate_poam_overdue(
                             }
                         }
 
-                        let is_active = matches!(
-                            status.as_str(),
-                            "open" | "in_progress" | "inprogress"
-                        );
+                        let is_active =
+                            matches!(status.as_str(), "open" | "in_progress" | "inprogress");
 
                         if is_active {
                             total_active += 1;
@@ -777,7 +812,11 @@ fn evaluate_poam_overdue(
                 name: "poam_overdue_sla".to_string(),
                 passed: false,
                 violation_code: None,
-                message: format!("Failed to read POA&M artifact '{}': {}", poam_path.display(), e),
+                message: format!(
+                    "Failed to read POA&M artifact '{}': {}",
+                    poam_path.display(),
+                    e
+                ),
                 details: serde_json::json!({ "io_error": e.to_string() }),
             });
             *has_operational_error = true;
@@ -1079,10 +1118,7 @@ release_dir = "artifacts/oscal"
         assert_eq!(report.exit_code, 0);
 
         // Assert all file hashes are byte-for-byte identical after execution
-        assert_eq!(
-            compute_file_sha256(&catalog_path).unwrap(),
-            cat_hash_before
-        );
+        assert_eq!(compute_file_sha256(&catalog_path).unwrap(), cat_hash_before);
         assert_eq!(
             compute_file_sha256(&repo_root.join("PROVENANCE.toml")).unwrap(),
             prov_hash_before
@@ -1205,7 +1241,10 @@ controls = ["ac-2"]
         };
 
         let report = execute_monitor(&config);
-        assert_eq!(report.exit_code, 2, "Expired attestation must trigger exit code 2");
+        assert_eq!(
+            report.exit_code, 2,
+            "Expired attestation must trigger exit code 2"
+        );
         assert!(report.has_policy_violation);
 
         let att_check = report
@@ -1215,7 +1254,9 @@ controls = ["ac-2"]
             .unwrap();
         assert!(!att_check.passed);
         assert_eq!(att_check.violation_code.as_deref(), Some("E-OSCAL-012"));
-        assert!(att_check.message.contains("Lapsed CSP inheritance attestation"));
+        assert!(att_check
+            .message
+            .contains("Lapsed CSP inheritance attestation"));
 
         let _ = fs::remove_dir_all(repo_root);
     }
@@ -1319,7 +1360,10 @@ release_dir = "artifacts/oscal"
         };
 
         let report2 = execute_monitor(&config_fail);
-        assert_eq!(report2.exit_code, 2, "Overdue SLA item with fail_on_overdue must exit 2");
+        assert_eq!(
+            report2.exit_code, 2,
+            "Overdue SLA item with fail_on_overdue must exit 2"
+        );
         assert!(report2.has_policy_violation);
 
         let _ = fs::remove_dir_all(repo_root);
@@ -1412,7 +1456,10 @@ release_dir = "artifacts/oscal"
         };
 
         let report_req = execute_monitor(&config_required);
-        assert_eq!(report_req.exit_code, 1, "Missing required POA&M must exit 1");
+        assert_eq!(
+            report_req.exit_code, 1,
+            "Missing required POA&M must exit 1"
+        );
         assert!(report_req.has_operational_error);
         let poam_check_req = report_req
             .checks

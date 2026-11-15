@@ -203,7 +203,12 @@ pub fn collect_host_toolchains() -> BTreeMap<String, String> {
         match std::process::Command::new(cmd).args(args).output() {
             Ok(output) if output.status.success() => {
                 let stdout = String::from_utf8_lossy(&output.stdout);
-                stdout.lines().next().unwrap_or("unknown").trim().to_string()
+                stdout
+                    .lines()
+                    .next()
+                    .unwrap_or("unknown")
+                    .trim()
+                    .to_string()
             }
             _ => "unknown".to_string(),
         }
@@ -211,7 +216,10 @@ pub fn collect_host_toolchains() -> BTreeMap<String, String> {
 
     m.insert("rustc".to_string(), query_tool("rustc", &["--version"]));
     m.insert("kani".to_string(), query_tool("kani", &["--version"]));
-    m.insert("charon".to_string(), query_tool("charon", &["toolchain-version"]));
+    m.insert(
+        "charon".to_string(),
+        query_tool("charon", &["toolchain-version"]),
+    );
     m.insert("lean".to_string(), query_tool("lean", &["--version"]));
     m.insert("lake".to_string(), query_tool("lake", &["--version"]));
 
@@ -240,8 +248,13 @@ pub fn emit_history_record(
     let record_id = generate_record_id(history_root, now, &git_sha);
     let record_dir = history_root.join(&record_id);
 
-    fs::create_dir_all(&record_dir)
-        .map_err(|e| vec![format!("Failed to create record directory {}: {}", record_dir.display(), e)])?;
+    fs::create_dir_all(&record_dir).map_err(|e| {
+        vec![format!(
+            "Failed to create record directory {}: {}",
+            record_dir.display(),
+            e
+        )]
+    })?;
 
     let mut artifact_hashes = BTreeMap::new();
 
@@ -249,26 +262,38 @@ pub fn emit_history_record(
     let ssp_path = record_dir.join("system-security-plan.json");
     fs::write(&ssp_path, ssp_str)
         .map_err(|e| vec![format!("Failed to write SSP history artifact: {}", e)])?;
-    artifact_hashes.insert("system-security-plan.json".to_string(), compute_bytes_sha256(ssp_str.as_bytes()));
+    artifact_hashes.insert(
+        "system-security-plan.json".to_string(),
+        compute_bytes_sha256(ssp_str.as_bytes()),
+    );
 
     // 2. Write SAP
     let sap_path = record_dir.join("assessment-plan.json");
     fs::write(&sap_path, sap_str)
         .map_err(|e| vec![format!("Failed to write SAP history artifact: {}", e)])?;
-    artifact_hashes.insert("assessment-plan.json".to_string(), compute_bytes_sha256(sap_str.as_bytes()));
+    artifact_hashes.insert(
+        "assessment-plan.json".to_string(),
+        compute_bytes_sha256(sap_str.as_bytes()),
+    );
 
     // 3. Write AR
     let ar_path = record_dir.join("assessment-results.json");
     fs::write(&ar_path, ar_str)
         .map_err(|e| vec![format!("Failed to write AR history artifact: {}", e)])?;
-    artifact_hashes.insert("assessment-results.json".to_string(), compute_bytes_sha256(ar_str.as_bytes()));
+    artifact_hashes.insert(
+        "assessment-results.json".to_string(),
+        compute_bytes_sha256(ar_str.as_bytes()),
+    );
 
     // 4. Write POA&M (if present)
     if let Some(p_str) = poam_str {
         let poam_path = record_dir.join("poam.json");
         fs::write(&poam_path, p_str)
             .map_err(|e| vec![format!("Failed to write POA&M history artifact: {}", e)])?;
-        artifact_hashes.insert("poam.json".to_string(), compute_bytes_sha256(p_str.as_bytes()));
+        artifact_hashes.insert(
+            "poam.json".to_string(),
+            compute_bytes_sha256(p_str.as_bytes()),
+        );
     }
 
     // 5. Write Telemetry digest
@@ -277,7 +302,10 @@ pub fn emit_history_record(
     let telem_path = record_dir.join("telemetry.json");
     fs::write(&telem_path, &telemetry_str)
         .map_err(|e| vec![format!("Failed to write telemetry history artifact: {}", e)])?;
-    artifact_hashes.insert("telemetry.json".to_string(), compute_bytes_sha256(telemetry_str.as_bytes()));
+    artifact_hashes.insert(
+        "telemetry.json".to_string(),
+        compute_bytes_sha256(telemetry_str.as_bytes()),
+    );
 
     let index = HistoryRecordIndex {
         record_id: record_id.clone(),
@@ -294,8 +322,13 @@ pub fn emit_history_record(
 
     let index_str = serde_json::to_string_pretty(&index)
         .map_err(|e| vec![format!("Failed to serialize history index: {}", e)])?;
-    fs::write(record_dir.join("index.json"), &index_str)
-        .map_err(|e| vec![format!("Failed to write index.json in {}: {}", record_dir.display(), e)])?;
+    fs::write(record_dir.join("index.json"), &index_str).map_err(|e| {
+        vec![format!(
+            "Failed to write index.json in {}: {}",
+            record_dir.display(),
+            e
+        )]
+    })?;
 
     // 6. Enforce retention pruning
     let ret_cfg = retention.cloned().unwrap_or_default();
@@ -418,7 +451,10 @@ pub fn replay_history_record(
         let host_toolchains = collect_host_toolchains();
         for (tool, expected_ver) in &index.toolchains {
             if let Some(host_ver) = host_toolchains.get(tool) {
-                if host_ver != expected_ver && !expected_ver.contains("unknown") && !host_ver.contains("unknown") {
+                if host_ver != expected_ver
+                    && !expected_ver.contains("unknown")
+                    && !host_ver.contains("unknown")
+                {
                     errors.push(format!(
                         "Replay toolchain mismatch for '{}': recorded version is '{}', but host environment has '{}' [{}]",
                         tool, expected_ver, host_ver, OscalErrorCode::ReplayToolchainMismatch.as_str()
@@ -550,7 +586,10 @@ mod tests {
             std::env::remove_var("CI_COMMIT_SHA");
         }
         let resolved = resolve_git_sha(repo_root);
-        assert!(!resolved.is_empty(), "Must resolve either git commit or nogit");
+        assert!(
+            !resolved.is_empty(),
+            "Must resolve either git commit or nogit"
+        );
     }
 
     #[test]
@@ -559,7 +598,9 @@ mod tests {
         let _ = fs::remove_dir_all(test_dir);
         fs::create_dir_all(test_dir).unwrap();
 
-        let now = DateTime::parse_from_rfc3339("2026-11-10T15:30:00Z").unwrap().with_timezone(&Utc);
+        let now = DateTime::parse_from_rfc3339("2026-11-10T15:30:00Z")
+            .unwrap()
+            .with_timezone(&Utc);
         let git_sha = "abcdef123456789";
 
         // 1st record: no suffix
@@ -585,7 +626,9 @@ mod tests {
         let _ = fs::remove_dir_all(test_dir);
         fs::create_dir_all(test_dir).unwrap();
 
-        let base_time = DateTime::parse_from_rfc3339("2026-11-10T10:00:00Z").unwrap().with_timezone(&Utc);
+        let base_time = DateTime::parse_from_rfc3339("2026-11-10T10:00:00Z")
+            .unwrap()
+            .with_timezone(&Utc);
 
         // Create 5 records: record 0, 1, 2, 3, 4
         // Record 1 is tagged ("v1.0.0")
@@ -595,7 +638,11 @@ mod tests {
             let dir = test_dir.join(&id);
             fs::create_dir_all(&dir).unwrap();
 
-            let tag = if i == 1 { Some("v1.0.0".to_string()) } else { None };
+            let tag = if i == 1 {
+                Some("v1.0.0".to_string())
+            } else {
+                None
+            };
             let index = HistoryRecordIndex {
                 record_id: id,
                 timestamp: t,
@@ -608,7 +655,11 @@ mod tests {
                 gate_outcome: Some("passed".to_string()),
                 git_tag: tag,
             };
-            fs::write(dir.join("index.json"), serde_json::to_string(&index).unwrap()).unwrap();
+            fs::write(
+                dir.join("index.json"),
+                serde_json::to_string(&index).unwrap(),
+            )
+            .unwrap();
         }
 
         // Retention: max 3 records, retain tagged releases
@@ -655,7 +706,8 @@ mod tests {
             repo_root,
             None,
             Some("passed"),
-        ).unwrap();
+        )
+        .unwrap();
 
         let record_dir = test_dir.join(&index.record_id);
 

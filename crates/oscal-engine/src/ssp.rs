@@ -47,18 +47,19 @@ pub fn synthesize_system_security_plan(
     let now_str = now.to_rfc3339();
 
     // Deterministic UUIDs
-    let ssp_uuid = Uuid::new_v5(&PRIME_OSCAL_NAMESPACE, b"ssp:document:prime-continuous-verification");
+    let ssp_uuid = Uuid::new_v5(
+        &PRIME_OSCAL_NAMESPACE,
+        b"ssp:document:prime-continuous-verification",
+    );
     let managing_party_uuid = Uuid::new_v5(&PRIME_OSCAL_NAMESPACE, b"ssp:party:prime-core-team");
     let user_uuid = Uuid::new_v5(&PRIME_OSCAL_NAMESPACE, b"ssp:user:automated-verifier");
 
     // Parties
-    let mut parties = vec![
-        json!({
-            "uuid": managing_party_uuid.to_string(),
-            "type": "organization",
-            "name": "PRIME Continuous Verification Core Team"
-        }),
-    ];
+    let mut parties = vec![json!({
+        "uuid": managing_party_uuid.to_string(),
+        "type": "organization",
+        "name": "PRIME Continuous Verification Core Team"
+    })];
 
     // Profile href
     let profile_name = policy_config
@@ -76,10 +77,19 @@ pub fn synthesize_system_security_plan(
         for (src_id, inh) in &cat.inheritance {
             let lev_auth_uuid = match Uuid::parse_str(&inh.leveraged_authorization_uuid) {
                 Ok(u) if u.get_version_num() == 4 || u.get_version_num() == 5 => u,
-                _ => Uuid::new_v5(&PRIME_OSCAL_NAMESPACE, format!("ssp:leveraged-auth:{}", src_id).as_bytes()),
+                _ => Uuid::new_v5(
+                    &PRIME_OSCAL_NAMESPACE,
+                    format!("ssp:leveraged-auth:{}", src_id).as_bytes(),
+                ),
             };
-            let party_uuid = Uuid::new_v5(&PRIME_OSCAL_NAMESPACE, format!("ssp:party:leveraged:{}", src_id).as_bytes());
-            let comp_uuid = Uuid::new_v5(&PRIME_OSCAL_NAMESPACE, format!("ssp:component:leveraged:{}", src_id).as_bytes());
+            let party_uuid = Uuid::new_v5(
+                &PRIME_OSCAL_NAMESPACE,
+                format!("ssp:party:leveraged:{}", src_id).as_bytes(),
+            );
+            let comp_uuid = Uuid::new_v5(
+                &PRIME_OSCAL_NAMESPACE,
+                format!("ssp:component:leveraged:{}", src_id).as_bytes(),
+            );
 
             leveraged_component_map.insert(src_id.clone(), (comp_uuid, lev_auth_uuid));
 
@@ -117,12 +127,27 @@ pub fn synthesize_system_security_plan(
     if workspace_components.is_empty() {
         // Default components from PRIME
         let default_pkgs = [
-            ("oscal-engine", "PRIME OSCAL Compliance Engine", "OSCAL compiler, synthesis, and gate evaluation engine"),
-            ("cargo-oscal", "PRIME OSCAL CLI Orchestrator", "Continuous verification driver and verification orchestrator"),
-            ("sha256-demo", "PRIME SHA-256 Formal Verification Demo", "Cryptographic kernel with Kani CBMC and Lean 4 formal proofs"),
+            (
+                "oscal-engine",
+                "PRIME OSCAL Compliance Engine",
+                "OSCAL compiler, synthesis, and gate evaluation engine",
+            ),
+            (
+                "cargo-oscal",
+                "PRIME OSCAL CLI Orchestrator",
+                "Continuous verification driver and verification orchestrator",
+            ),
+            (
+                "sha256-demo",
+                "PRIME SHA-256 Formal Verification Demo",
+                "Cryptographic kernel with Kani CBMC and Lean 4 formal proofs",
+            ),
         ];
         for (pkg_name, title, desc) in default_pkgs {
-            let comp_uuid = Uuid::new_v5(&PRIME_OSCAL_NAMESPACE, format!("ssp:component:workspace:{}", pkg_name).as_bytes());
+            let comp_uuid = Uuid::new_v5(
+                &PRIME_OSCAL_NAMESPACE,
+                format!("ssp:component:workspace:{}", pkg_name).as_bytes(),
+            );
             workspace_component_map.insert(pkg_name.to_string(), comp_uuid);
             components.push(json!({
                 "uuid": comp_uuid.to_string(),
@@ -136,7 +161,10 @@ pub fn synthesize_system_security_plan(
         }
     } else {
         for c in workspace_components {
-            let comp_uuid = Uuid::new_v5(&PRIME_OSCAL_NAMESPACE, format!("ssp:component:workspace:{}", c.name).as_bytes());
+            let comp_uuid = Uuid::new_v5(
+                &PRIME_OSCAL_NAMESPACE,
+                format!("ssp:component:workspace:{}", c.name).as_bytes(),
+            );
             workspace_component_map.insert(c.name.clone(), comp_uuid);
             components.push(json!({
                 "uuid": comp_uuid.to_string(),
@@ -156,16 +184,27 @@ pub fn synthesize_system_security_plan(
 
     for control_id in &tailoring_report.c_tailored {
         let canonical_id = crate::canonicalize_control_id(control_id);
-        let req_uuid = Uuid::new_v5(&PRIME_OSCAL_NAMESPACE, format!("ssp:imp-req:{}", canonical_id).as_bytes());
+        let req_uuid = Uuid::new_v5(
+            &PRIME_OSCAL_NAMESPACE,
+            format!("ssp:imp-req:{}", canonical_id).as_bytes(),
+        );
 
-        let disposition = control_dispositions.get(&canonical_id).or_else(|| control_dispositions.get(control_id));
+        let disposition = control_dispositions
+            .get(&canonical_id)
+            .or_else(|| control_dispositions.get(control_id));
         match disposition {
-            Some(ControlDisposition::Workspace { component, achieved_tier }) => {
+            Some(ControlDisposition::Workspace {
+                component,
+                achieved_tier,
+            }) => {
                 let comp_uuid = workspace_component_map
                     .get(component)
                     .map(|u| u.to_string())
                     .unwrap_or_else(|| default_comp_uuid.clone());
-                let by_comp_uuid = Uuid::new_v5(&PRIME_OSCAL_NAMESPACE, format!("ssp:by-comp:{}:{}", canonical_id, component).as_bytes());
+                let by_comp_uuid = Uuid::new_v5(
+                    &PRIME_OSCAL_NAMESPACE,
+                    format!("ssp:by-comp:{}:{}", canonical_id, component).as_bytes(),
+                );
 
                 implemented_requirements.push(json!({
                     "uuid": req_uuid.to_string(),
@@ -190,13 +229,27 @@ pub fn synthesize_system_security_plan(
                 let (comp_uuid, lev_auth_uuid) = match leveraged_component_map.get(source_id) {
                     Some((cu, lu)) => (cu.to_string(), lu.to_string()),
                     None => {
-                        let cu = Uuid::new_v5(&PRIME_OSCAL_NAMESPACE, format!("ssp:component:leveraged:{}", source_id).as_bytes()).to_string();
-                        let lu = Uuid::new_v5(&PRIME_OSCAL_NAMESPACE, format!("ssp:leveraged-auth:{}", source_id).as_bytes()).to_string();
+                        let cu = Uuid::new_v5(
+                            &PRIME_OSCAL_NAMESPACE,
+                            format!("ssp:component:leveraged:{}", source_id).as_bytes(),
+                        )
+                        .to_string();
+                        let lu = Uuid::new_v5(
+                            &PRIME_OSCAL_NAMESPACE,
+                            format!("ssp:leveraged-auth:{}", source_id).as_bytes(),
+                        )
+                        .to_string();
                         (cu, lu)
                     }
                 };
-                let by_comp_uuid = Uuid::new_v5(&PRIME_OSCAL_NAMESPACE, format!("ssp:by-comp:{}:{}", canonical_id, source_id).as_bytes());
-                let inherited_item_uuid = Uuid::new_v5(&PRIME_OSCAL_NAMESPACE, format!("ssp:inherited-item:{}:{}", canonical_id, source_id).as_bytes());
+                let by_comp_uuid = Uuid::new_v5(
+                    &PRIME_OSCAL_NAMESPACE,
+                    format!("ssp:by-comp:{}:{}", canonical_id, source_id).as_bytes(),
+                );
+                let inherited_item_uuid = Uuid::new_v5(
+                    &PRIME_OSCAL_NAMESPACE,
+                    format!("ssp:inherited-item:{}:{}", canonical_id, source_id).as_bytes(),
+                );
 
                 implemented_requirements.push(json!({
                     "uuid": req_uuid.to_string(),
@@ -334,14 +387,17 @@ mod tests {
             "aws-east-1".to_string(),
             GatePolicyConfigCatalogInheritanceValue {
                 attestation_expiry: "2027-01-01T00:00:00Z".to_string(),
-                boundary_description: Some("AWS US East 1 FedRAMP High Authorization Boundary".to_string()),
+                boundary_description: Some(
+                    "AWS US East 1 FedRAMP High Authorization Boundary".to_string(),
+                ),
                 controls: vec!["pe-3".to_string()],
                 leveraged_authorization_uuid: "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d".to_string(),
                 title: "AWS GovCloud Infrastructure".to_string(),
             },
         );
 
-        let mut config: GatePolicyConfig = toml::from_str(r#"
+        let mut config: GatePolicyConfig = toml::from_str(
+            r#"
             [policy]
             require_kani_pass = false
             forbid_lean_sorry = false
@@ -354,7 +410,9 @@ mod tests {
             mode = "auto"
             staging_dir = "artifacts/oscal/staging"
             release_dir = "artifacts/oscal"
-        "#).unwrap();
+        "#,
+        )
+        .unwrap();
 
         config.catalog = Some(GatePolicyConfigCatalog {
             baseline: Some("NIST_SP_800_53_Rev5".to_string()),
@@ -411,7 +469,13 @@ mod tests {
             },
         ];
 
-        (config, tailoring_report, dispositions, workspace_components, fixed_now)
+        (
+            config,
+            tailoring_report,
+            dispositions,
+            workspace_components,
+            fixed_now,
+        )
     }
 
     #[test]
@@ -433,9 +497,14 @@ mod tests {
         let ssp = &ssp_doc["system-security-plan"];
         assert_eq!(ssp["metadata"]["oscal-version"], "1.1.0");
         assert_eq!(ssp["metadata"]["published"], now.to_rfc3339());
-        assert_eq!(ssp["import-profile"]["href"], "urn:oscal:profile:fedramp_high");
+        assert_eq!(
+            ssp["import-profile"]["href"],
+            "urn:oscal:profile:fedramp_high"
+        );
 
-        let imp_reqs = ssp["control-implementation"]["implemented-requirements"].as_array().unwrap();
+        let imp_reqs = ssp["control-implementation"]["implemented-requirements"]
+            .as_array()
+            .unwrap();
         assert_eq!(imp_reqs.len(), 3);
     }
 
@@ -451,9 +520,14 @@ mod tests {
             &components,
             Some(now),
         );
-        assert!(res.is_err(), "SSP synthesis must fail closed when control is unsatisfied");
+        assert!(
+            res.is_err(),
+            "SSP synthesis must fail closed when control is unsatisfied"
+        );
         let errs = res.err().unwrap();
-        assert!(errs.iter().any(|e| e.contains("[E-OSCAL-013]") && e.contains("ac-1")));
+        assert!(errs
+            .iter()
+            .any(|e| e.contains("[E-OSCAL-013]") && e.contains("ac-1")));
     }
 
     #[test]
@@ -465,7 +539,8 @@ mod tests {
             &dispositions,
             &components,
             Some(now),
-        ).unwrap();
+        )
+        .unwrap();
 
         let res2 = synthesize_system_security_plan(
             Some(&config),
@@ -473,11 +548,15 @@ mod tests {
             &dispositions,
             &components,
             Some(now),
-        ).unwrap();
+        )
+        .unwrap();
 
         let json1 = serde_json::to_string(&res1).unwrap();
         let json2 = serde_json::to_string(&res2).unwrap();
-        assert_eq!(json1, json2, "SSP synthesis must be strictly deterministic and byte-identical");
+        assert_eq!(
+            json1, json2,
+            "SSP synthesis must be strictly deterministic and byte-identical"
+        );
     }
 
     #[test]
@@ -489,42 +568,69 @@ mod tests {
             &dispositions,
             &components,
             Some(now),
-        ).unwrap();
+        )
+        .unwrap();
 
         let ssp = &ssp_doc["system-security-plan"];
 
         // 1. Verify components in system-implementation
-        let system_components = ssp["system-implementation"]["components"].as_array().unwrap();
-        let leveraged_comp = system_components.iter().find(|c| c["type"] == "interconnection").unwrap();
-        assert_eq!(leveraged_comp["title"], "Leveraged Boundary: AWS GovCloud Infrastructure");
+        let system_components = ssp["system-implementation"]["components"]
+            .as_array()
+            .unwrap();
+        let leveraged_comp = system_components
+            .iter()
+            .find(|c| c["type"] == "interconnection")
+            .unwrap();
+        assert_eq!(
+            leveraged_comp["title"],
+            "Leveraged Boundary: AWS GovCloud Infrastructure"
+        );
 
-        let software_comps: Vec<_> = system_components.iter().filter(|c| c["type"] == "software").collect();
+        let software_comps: Vec<_> = system_components
+            .iter()
+            .filter(|c| c["type"] == "software")
+            .collect();
         assert_eq!(software_comps.len(), 2);
 
         // 2. Verify leveraged authorization
-        let lev_auths = ssp["system-implementation"]["leveraged-authorizations"].as_array().unwrap();
+        let lev_auths = ssp["system-implementation"]["leveraged-authorizations"]
+            .as_array()
+            .unwrap();
         assert_eq!(lev_auths.len(), 1);
         let lev_auth_uuid = lev_auths[0]["uuid"].as_str().unwrap();
         assert_eq!(lev_auth_uuid, "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d");
 
         // 3. Verify implemented requirements mapping
-        let imp_reqs = ssp["control-implementation"]["implemented-requirements"].as_array().unwrap();
+        let imp_reqs = ssp["control-implementation"]["implemented-requirements"]
+            .as_array()
+            .unwrap();
 
         // Check workspace requirement: si-7(1) -> canonicalized to si-7.1
-        let si7 = imp_reqs.iter().find(|r| r["control-id"] == "si-7.1").unwrap();
+        let si7 = imp_reqs
+            .iter()
+            .find(|r| r["control-id"] == "si-7.1")
+            .unwrap();
         let si7_by_comp = &si7["by-components"][0];
         assert_eq!(si7_by_comp["implementation-status"]["state"], "implemented");
         let si7_props = si7_by_comp["props"].as_array().unwrap();
-        assert!(si7_props.iter().any(|p| p["name"] == "implementation-point" && p["value"] == "internal"));
-        assert!(si7_props.iter().any(|p| p["name"] == "achieved-evidence-tier" && p["value"] == "formal_kernel"));
+        assert!(si7_props
+            .iter()
+            .any(|p| p["name"] == "implementation-point" && p["value"] == "internal"));
+        assert!(si7_props
+            .iter()
+            .any(|p| p["name"] == "achieved-evidence-tier" && p["value"] == "formal_kernel"));
 
         // Check inherited requirement: pe-3
         let pe3 = imp_reqs.iter().find(|r| r["control-id"] == "pe-3").unwrap();
         let pe3_by_comp = &pe3["by-components"][0];
         assert_eq!(pe3_by_comp["implementation-status"]["state"], "implemented");
         let pe3_props = pe3_by_comp["props"].as_array().unwrap();
-        assert!(pe3_props.iter().any(|p| p["name"] == "implementation-point" && p["value"] == "external"));
-        assert!(pe3_props.iter().any(|p| p["name"] == "inheritance-source" && p["value"] == "aws-east-1"));
+        assert!(pe3_props
+            .iter()
+            .any(|p| p["name"] == "implementation-point" && p["value"] == "external"));
+        assert!(pe3_props
+            .iter()
+            .any(|p| p["name"] == "inheritance-source" && p["value"] == "aws-east-1"));
 
         // Inherited item must match leveraged authorization UUID
         let inherited_items = pe3_by_comp["inherited"].as_array().unwrap();
@@ -540,7 +646,8 @@ mod tests {
             &dispositions,
             &components,
             Some(now),
-        ).unwrap();
+        )
+        .unwrap();
 
         let ssp_str = serde_json::to_string(&ssp_doc).unwrap().to_lowercase();
 

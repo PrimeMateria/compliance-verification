@@ -9,8 +9,8 @@ use uuid::Uuid;
 use oscal_types::{
     AssessmentResults, ControlSelection, Finding, FindingTarget, ImportAp, Metadata, Observation,
     OscalAssessmentResultsDocument, OscalPoamDocument, PlanOfActionAndMilestones, PoamItem,
-    Property, RelatedFinding, RelatedObservation, ResultItem, ReviewedControls,
-    SelectControlById, Subject, TargetStatus,
+    Property, RelatedFinding, RelatedObservation, ResultItem, ReviewedControls, SelectControlById,
+    Subject, TargetStatus,
 };
 
 use crate::gate_policy::GatePolicyConfigPolicyWaiverMode;
@@ -20,9 +20,8 @@ use crate::sap::{
 };
 use crate::tailoring::get_effective_clock;
 use crate::{
-    canonicalize_control_id, EvidenceTier, SuppressedFindingItem,
-    SuppressedFindingsDocument, SuppressedFindingsMetadata, SynthesisInput,
-    SynthesizedComplianceBundle,
+    canonicalize_control_id, EvidenceTier, SuppressedFindingItem, SuppressedFindingsDocument,
+    SuppressedFindingsMetadata, SynthesisInput, SynthesizedComplianceBundle,
 };
 
 /// Information extracted from an OSCAL Assessment Plan (SAP)
@@ -74,7 +73,10 @@ pub fn parse_sap_for_linking(sap_val: &Value) -> Result<SapMetadata, Vec<String>
         .ok_or_else(|| vec!["[E-OSCAL-017] Missing 'uuid' in SAP".to_string()])?;
 
     let sap_uuid = Uuid::parse_str(sap_uuid_str).map_err(|e| {
-        vec![format!("[E-OSCAL-017] Invalid SAP UUID '{}': {}", sap_uuid_str, e)]
+        vec![format!(
+            "[E-OSCAL-017] Invalid SAP UUID '{}': {}",
+            sap_uuid_str, e
+        )]
     })?;
 
     // 1. Extract Activities
@@ -84,12 +86,19 @@ pub fn parse_sap_for_linking(sap_val: &Value) -> Result<SapMetadata, Vec<String>
             for act in acts {
                 if let Some(u_str) = act.get("uuid").and_then(|u| u.as_str()) {
                     if let Ok(act_uuid) = Uuid::parse_str(u_str) {
-                        let title = act.get("title").and_then(|t| t.as_str()).unwrap_or("Activity").to_string();
+                        let title = act
+                            .get("title")
+                            .and_then(|t| t.as_str())
+                            .unwrap_or("Activity")
+                            .to_string();
                         let mut phase = String::new();
                         let mut method = String::new();
                         if let Some(props) = act.get("props").and_then(|p| p.as_array()) {
                             for pr in props {
-                                if let (Some(n), Some(v)) = (pr.get("name").and_then(|n| n.as_str()), pr.get("value").and_then(|v| v.as_str())) {
+                                if let (Some(n), Some(v)) = (
+                                    pr.get("name").and_then(|n| n.as_str()),
+                                    pr.get("value").and_then(|v| v.as_str()),
+                                ) {
                                     if n == "phase" {
                                         phase = v.to_string();
                                     } else if n == "verification-method" {
@@ -98,12 +107,15 @@ pub fn parse_sap_for_linking(sap_val: &Value) -> Result<SapMetadata, Vec<String>
                                 }
                             }
                         }
-                        activities.insert(act_uuid, SapActivityInfo {
-                            uuid: act_uuid,
-                            title,
-                            phase,
-                            verification_method: method,
-                        });
+                        activities.insert(
+                            act_uuid,
+                            SapActivityInfo {
+                                uuid: act_uuid,
+                                title,
+                                phase,
+                                verification_method: method,
+                            },
+                        );
                     }
                 }
             }
@@ -112,7 +124,10 @@ pub fn parse_sap_for_linking(sap_val: &Value) -> Result<SapMetadata, Vec<String>
 
     // 2. Extract Assessment Subjects
     let mut subjects = BTreeMap::new();
-    if let Some(sub_groups) = sap_obj.get("assessment-subjects").and_then(|v| v.as_array()) {
+    if let Some(sub_groups) = sap_obj
+        .get("assessment-subjects")
+        .and_then(|v| v.as_array())
+    {
         for grp in sub_groups {
             if let Some(incl) = grp.get("include-subjects").and_then(|v| v.as_array()) {
                 for s in incl {
@@ -123,10 +138,17 @@ pub fn parse_sap_for_linking(sap_val: &Value) -> Result<SapMetadata, Vec<String>
                             let mut disp = "workspace".to_string();
                             if let Some(props) = s.get("props").and_then(|p| p.as_array()) {
                                 for pr in props {
-                                    if let (Some(n), Some(v)) = (pr.get("name").and_then(|n| n.as_str()), pr.get("value").and_then(|v| v.as_str())) {
-                                        if n == "component-title" || n == "leveraged-authorization-title" {
+                                    if let (Some(n), Some(v)) = (
+                                        pr.get("name").and_then(|n| n.as_str()),
+                                        pr.get("value").and_then(|v| v.as_str()),
+                                    ) {
+                                        if n == "component-title"
+                                            || n == "leveraged-authorization-title"
+                                        {
                                             title = v.to_string();
-                                        } else if n == "component-uuid" || n == "leveraged-authorization-uuid" {
+                                        } else if n == "component-uuid"
+                                            || n == "leveraged-authorization-uuid"
+                                        {
                                             comp_uuid = Some(v.to_string());
                                         } else if n == "disposition" {
                                             disp = v.to_string();
@@ -134,14 +156,21 @@ pub fn parse_sap_for_linking(sap_val: &Value) -> Result<SapMetadata, Vec<String>
                                     }
                                 }
                             }
-                            let stype = s.get("type").and_then(|t| t.as_str()).unwrap_or("component").to_string();
-                            subjects.insert(sub_uuid, SapSubjectInfo {
-                                uuid: sub_uuid,
-                                subject_type: stype,
-                                title,
-                                component_uuid: comp_uuid,
-                                disposition: disp,
-                            });
+                            let stype = s
+                                .get("type")
+                                .and_then(|t| t.as_str())
+                                .unwrap_or("component")
+                                .to_string();
+                            subjects.insert(
+                                sub_uuid,
+                                SapSubjectInfo {
+                                    uuid: sub_uuid,
+                                    subject_type: stype,
+                                    title,
+                                    component_uuid: comp_uuid,
+                                    disposition: disp,
+                                },
+                            );
                         }
                     }
                 }
@@ -159,7 +188,10 @@ pub fn parse_sap_for_linking(sap_val: &Value) -> Result<SapMetadata, Vec<String>
             .and_then(|v| v.as_array())
         {
             for obj in objs {
-                let raw_cid = obj.get("control-id").and_then(|c| c.as_str()).unwrap_or_default();
+                let raw_cid = obj
+                    .get("control-id")
+                    .and_then(|c| c.as_str())
+                    .unwrap_or_default();
                 let canonical_cid = canonicalize_control_id(raw_cid);
 
                 let mut obj_id = format!("{}_obj_1", canonical_cid);
@@ -176,7 +208,9 @@ pub fn parse_sap_for_linking(sap_val: &Value) -> Result<SapMetadata, Vec<String>
                 let mut ir_uuid = Uuid::nil();
                 if let Some(props) = obj.get("props").and_then(|p| p.as_array()) {
                     for pr in props {
-                        if pr.get("name").and_then(|n| n.as_str()) == Some("implemented-requirement-uuid") {
+                        if pr.get("name").and_then(|n| n.as_str())
+                            == Some("implemented-requirement-uuid")
+                        {
                             if let Some(u) = pr.get("value").and_then(|v| v.as_str()) {
                                 if let Ok(parsed) = Uuid::parse_str(u) {
                                     ir_uuid = parsed;
@@ -186,11 +220,14 @@ pub fn parse_sap_for_linking(sap_val: &Value) -> Result<SapMetadata, Vec<String>
                     }
                 }
 
-                objectives.insert(obj_id.clone(), SapObjectiveInfo {
-                    control_id: raw_cid.to_string(),
-                    objective_id: obj_id.clone(),
-                    implemented_requirement_uuid: ir_uuid,
-                });
+                objectives.insert(
+                    obj_id.clone(),
+                    SapObjectiveInfo {
+                        control_id: raw_cid.to_string(),
+                        objective_id: obj_id.clone(),
+                        implemented_requirement_uuid: ir_uuid,
+                    },
+                );
                 control_to_objective.insert(canonical_cid, obj_id);
             }
         }
@@ -208,9 +245,18 @@ pub fn parse_sap_for_linking(sap_val: &Value) -> Result<SapMetadata, Vec<String>
 /// Extract valid implemented-requirement UUIDs from an SSP document
 pub fn extract_ssp_implemented_requirement_uuids(ssp_val: &Value) -> BTreeSet<Uuid> {
     let mut uuids = BTreeSet::new();
-    if let Some(ssp_obj) = ssp_val.get("system-security-plan").and_then(|v| v.as_object()) {
-        if let Some(ctrl_impl) = ssp_obj.get("control-implementation").and_then(|v| v.as_object()) {
-            if let Some(reqs) = ctrl_impl.get("implemented-requirements").and_then(|v| v.as_array()) {
+    if let Some(ssp_obj) = ssp_val
+        .get("system-security-plan")
+        .and_then(|v| v.as_object())
+    {
+        if let Some(ctrl_impl) = ssp_obj
+            .get("control-implementation")
+            .and_then(|v| v.as_object())
+        {
+            if let Some(reqs) = ctrl_impl
+                .get("implemented-requirements")
+                .and_then(|v| v.as_array())
+            {
                 for r in reqs {
                     if let Some(u_str) = r.get("uuid").and_then(|u| u.as_str()) {
                         if let Ok(u) = Uuid::parse_str(u_str) {
@@ -359,7 +405,11 @@ pub fn synthesize_linked_compliance_bundle(
             if !valid_ssp_ir.contains(&obj_info.implemented_requirement_uuid) {
                 let find_uuid = Uuid::new_v5(
                     &sap_meta.sap_uuid,
-                    format!("finding:{}:{}", obj_id, obj_info.implemented_requirement_uuid).as_bytes(),
+                    format!(
+                        "finding:{}:{}",
+                        obj_id, obj_info.implemented_requirement_uuid
+                    )
+                    .as_bytes(),
                 );
                 return Err(vec![format!(
                     "[E-OSCAL-017] Orphaned assessment finding: finding '{}' references missing implemented-requirement target '{}' (control {})",
@@ -383,7 +433,11 @@ pub fn synthesize_linked_compliance_bundle(
                 if !sap_meta.subjects.contains_key(&subject_uuid) {
                     let offending_obs_uuid = Uuid::new_v5(
                         &sap_meta.sap_uuid,
-                        format!("obs:unresolved:{}:{}", input.control_id, input.target_symbol).as_bytes(),
+                        format!(
+                            "obs:unresolved:{}:{}",
+                            input.control_id, input.target_symbol
+                        )
+                        .as_bytes(),
                     );
                     return Err(vec![format!(
                         "[E-OSCAL-017] Orphaned assessment observation: observation '{}' references missing subject target '{}'",
@@ -422,19 +476,41 @@ pub fn synthesize_linked_compliance_bundle(
                 };
 
                 // Emit observation bound to active verification activity
-                let (act_uuid, act_phase, method) = if input.required_tier >= EvidenceTier::FormalKernel && default_lean_act.is_some() {
-                    (default_lean_act.unwrap(), ACTIVITY_PHASE_LEAN4_KERNEL, "FORMAL_VERIFICATION")
-                } else if input.required_tier >= EvidenceTier::Symbolic && default_kani_act.is_some() {
-                    (default_kani_act.unwrap(), ACTIVITY_PHASE_KANI_CBMC, "FORMAL_VERIFICATION")
+                let (act_uuid, act_phase, method) = if input.required_tier
+                    >= EvidenceTier::FormalKernel
+                    && default_lean_act.is_some()
+                {
+                    (
+                        default_lean_act.unwrap(),
+                        ACTIVITY_PHASE_LEAN4_KERNEL,
+                        "FORMAL_VERIFICATION",
+                    )
+                } else if input.required_tier >= EvidenceTier::Symbolic
+                    && default_kani_act.is_some()
+                {
+                    (
+                        default_kani_act.unwrap(),
+                        ACTIVITY_PHASE_KANI_CBMC,
+                        "FORMAL_VERIFICATION",
+                    )
                 } else {
-                    (default_test_act.unwrap_or_else(|| Uuid::new_v5(&sap_meta.sap_uuid, b"act:fallback")), ACTIVITY_PHASE_TEST_SUITE, "TEST")
+                    (
+                        default_test_act
+                            .unwrap_or_else(|| Uuid::new_v5(&sap_meta.sap_uuid, b"act:fallback")),
+                        ACTIVITY_PHASE_TEST_SUITE,
+                        "TEST",
+                    )
                 };
 
                 // E-OSCAL-017 activity check
                 if !sap_meta.activities.contains_key(&act_uuid) {
                     let offending_obs_uuid = Uuid::new_v5(
                         &sap_meta.sap_uuid,
-                        format!("obs:unresolved_act:{}:{}", input.control_id, input.target_symbol).as_bytes(),
+                        format!(
+                            "obs:unresolved_act:{}:{}",
+                            input.control_id, input.target_symbol
+                        )
+                        .as_bytes(),
                     );
                     return Err(vec![format!(
                         "[E-OSCAL-017] Orphaned assessment observation: observation '{}' references missing activity target '{}'",
@@ -444,7 +520,11 @@ pub fn synthesize_linked_compliance_bundle(
 
                 let obs_uuid = Uuid::new_v5(
                     &sap_meta.sap_uuid,
-                    format!("obs:{}:{}:{}:{}", act_uuid, subject_uuid, input.control_id, input.target_symbol).as_bytes(),
+                    format!(
+                        "obs:{}:{}:{}:{}",
+                        act_uuid, subject_uuid, input.control_id, input.target_symbol
+                    )
+                    .as_bytes(),
                 );
 
                 observations.push(Observation {
@@ -523,8 +603,14 @@ pub fn synthesize_linked_compliance_bundle(
                         target_symbol: input.target_symbol.clone(),
                         required_tier: input.required_tier.to_string(),
                         achieved_tier: input.achieved_tier.to_string(),
-                        suppression_reason: input.failure_reason.clone().unwrap_or_else(|| "Suppressed by policy".to_string()),
-                        raw_telemetry: Some(format!("Kani: {}, Lean sorry: {}", input.kani_passed, input.lean_sorry_detected)),
+                        suppression_reason: input
+                            .failure_reason
+                            .clone()
+                            .unwrap_or_else(|| "Suppressed by policy".to_string()),
+                        raw_telemetry: Some(format!(
+                            "Kani: {}, Lean sorry: {}",
+                            input.kani_passed, input.lean_sorry_detected
+                        )),
                     });
                     continue;
                 }
@@ -532,7 +618,11 @@ pub fn synthesize_linked_compliance_bundle(
                 // Deterministic finding UUID keyed on (SAP UUID, objective ID, implemented-requirement UUID)
                 let find_uuid = Uuid::new_v5(
                     &sap_meta.sap_uuid,
-                    format!("finding:{}:{}", obj_id, obj_info.implemented_requirement_uuid).as_bytes(),
+                    format!(
+                        "finding:{}:{}",
+                        obj_id, obj_info.implemented_requirement_uuid
+                    )
+                    .as_bytes(),
                 );
 
                 findings.push(Finding {
@@ -619,7 +709,8 @@ pub fn synthesize_linked_compliance_bundle(
                 if !is_satisfied {
                     let poam_item_uuid = Uuid::new_v5(
                         &sap_meta.sap_uuid,
-                        format!("poam-item:{}:{}", input.control_id, input.target_symbol).as_bytes(),
+                        format!("poam-item:{}:{}", input.control_id, input.target_symbol)
+                            .as_bytes(),
                     );
                     if adjudicated_state == "risk_accepted" {
                         poam_items.push(PoamItem {
@@ -715,16 +806,24 @@ pub fn synthesize_linked_compliance_bundle(
         } else {
             // Inherited Control from CSP
             let sub_uuid = default_inherited_subject.unwrap_or(fallback_subject);
-            let act_uuid = default_test_act.unwrap_or_else(|| Uuid::new_v5(&sap_meta.sap_uuid, b"act:inherited"));
+            let act_uuid = default_test_act
+                .unwrap_or_else(|| Uuid::new_v5(&sap_meta.sap_uuid, b"act:inherited"));
 
             let obs_uuid = Uuid::new_v5(
                 &sap_meta.sap_uuid,
-                format!("obs:inherited:{}:{}:{}", act_uuid, sub_uuid, obj_info.control_id).as_bytes(),
+                format!(
+                    "obs:inherited:{}:{}:{}",
+                    act_uuid, sub_uuid, obj_info.control_id
+                )
+                .as_bytes(),
             );
 
             observations.push(Observation {
                 uuid: obs_uuid,
-                title: format!("CSP External Attestation for Control {}", obj_info.control_id),
+                title: format!(
+                    "CSP External Attestation for Control {}",
+                    obj_info.control_id
+                ),
                 description: format!(
                     "External authorization attestation package verified for control {}",
                     obj_info.control_id
@@ -771,7 +870,11 @@ pub fn synthesize_linked_compliance_bundle(
 
             let find_uuid = Uuid::new_v5(
                 &sap_meta.sap_uuid,
-                format!("finding:{}:{}", obj_id, obj_info.implemented_requirement_uuid).as_bytes(),
+                format!(
+                    "finding:{}:{}",
+                    obj_id, obj_info.implemented_requirement_uuid
+                )
+                .as_bytes(),
             );
 
             findings.push(Finding {
@@ -870,7 +973,11 @@ pub fn synthesize_linked_compliance_bundle(
     let tier_cov = tier_satisfied_count as f64 / total;
     let waiver_cov = (tier_satisfied_count + risk_accepted_count) as f64 / total;
 
-    let has_unresolved_defects = poam_items.iter().any(|p| p.props.iter().any(|pr| pr.name == "status" && pr.value == "open"));
+    let has_unresolved_defects = poam_items.iter().any(|p| {
+        p.props
+            .iter()
+            .any(|pr| pr.name == "status" && pr.value == "open")
+    });
     let gate_status = if !has_unresolved_defects && tier_cov >= 1.0 {
         "passed"
     } else if !has_unresolved_defects && risk_accepted_count > 0 {
@@ -975,7 +1082,10 @@ pub fn synthesize_linked_compliance_bundle(
         None
     } else {
         Some(SuppressedFindingsDocument {
-            uuid: Uuid::new_v5(&sap_meta.sap_uuid, format!("suppressed:{}", now.timestamp()).as_bytes()),
+            uuid: Uuid::new_v5(
+                &sap_meta.sap_uuid,
+                format!("suppressed:{}", now.timestamp()).as_bytes(),
+            ),
             metadata: SuppressedFindingsMetadata {
                 title: "PRIME Suppressed Findings Register".to_string(),
                 published: now,
@@ -1040,14 +1150,9 @@ mod tests {
             title: "PRIME Engine".to_string(),
             description: "PRIME Compliance Engine".to_string(),
         }];
-        let ssp = synthesize_system_security_plan(
-            None,
-            &tailoring_report,
-            &dispositions,
-            &comps,
-            None,
-        )
-        .expect("SSP synthesis failed");
+        let ssp =
+            synthesize_system_security_plan(None, &tailoring_report, &dispositions, &comps, None)
+                .expect("SSP synthesis failed");
 
         let sap = crate::sap::synthesize_assessment_plan(
             &ssp,
@@ -1216,16 +1321,26 @@ mod tests {
             .filter(|o| o.types.contains(&"metadata".to_string()))
             .collect();
 
-        assert_eq!(metadata_obs.len(), 1, "Expected exactly 1 metadata-only observation for ar-synthesis");
+        assert_eq!(
+            metadata_obs.len(),
+            1,
+            "Expected exactly 1 metadata-only observation for ar-synthesis"
+        );
         let meta_obs = metadata_obs[0];
         assert_eq!(meta_obs.methods, vec!["SYNTHESIS".to_string()]);
-        assert!(meta_obs.props.iter().any(|p| p.name == "activity-phase" && p.value == "ar-synthesis"));
+        assert!(meta_obs
+            .props
+            .iter()
+            .any(|p| p.name == "activity-phase" && p.value == "ar-synthesis"));
 
         // Verify that ar-synthesis observation is NOT referenced in any control finding
         let findings = &bundle.assessment_results.assessment_results.results[0].findings;
         for find in findings {
             for rel in &find.related_observations {
-                assert_ne!(rel.observation_uuid, meta_obs.uuid, "Finding should not reference ar-synthesis observation");
+                assert_ne!(
+                    rel.observation_uuid, meta_obs.uuid,
+                    "Finding should not reference ar-synthesis observation"
+                );
             }
         }
     }
@@ -1253,14 +1368,19 @@ mod tests {
         let res = synthesize_linked_compliance_bundle(&inputs, &sap, Some(&ssp), None);
         assert!(res.is_err(), "Expected failure on orphaned observation");
         let errs = res.err().unwrap();
-        assert!(errs.iter().any(|e| e.contains("[E-OSCAL-017]")), "Expected [E-OSCAL-017] in error, got: {:?}", errs);
+        assert!(
+            errs.iter().any(|e| e.contains("[E-OSCAL-017]")),
+            "Expected [E-OSCAL-017] in error, got: {:?}",
+            errs
+        );
     }
 
     #[test]
     fn test_orphaned_finding_fails_e_oscal_017() {
         let (mut ssp, sap) = make_test_ssp_and_sap();
         // Corrupt SSP implemented requirements by changing their UUIDs
-        let reqs = ssp["system-security-plan"]["control-implementation"]["implemented-requirements"]
+        let reqs = ssp["system-security-plan"]["control-implementation"]
+            ["implemented-requirements"]
             .as_array_mut()
             .unwrap();
         for r in reqs {
@@ -1284,7 +1404,11 @@ mod tests {
         let res = synthesize_linked_compliance_bundle(&inputs, &sap, Some(&ssp), None);
         assert!(res.is_err(), "Expected failure on orphaned finding target");
         let errs = res.err().unwrap();
-        assert!(errs.iter().any(|e| e.contains("[E-OSCAL-017]")), "Expected [E-OSCAL-017] in error, got: {:?}", errs);
+        assert!(
+            errs.iter().any(|e| e.contains("[E-OSCAL-017]")),
+            "Expected [E-OSCAL-017] in error, got: {:?}",
+            errs
+        );
     }
 
     #[test]
@@ -1319,10 +1443,16 @@ mod tests {
             },
         ];
 
-        let fixed_clock = Some(DateTime::parse_from_rfc3339("2026-11-10T22:00:00Z").unwrap().with_timezone(&Utc));
+        let fixed_clock = Some(
+            DateTime::parse_from_rfc3339("2026-11-10T22:00:00Z")
+                .unwrap()
+                .with_timezone(&Utc),
+        );
 
-        let b1 = synthesize_linked_compliance_bundle(&inputs, &sap, Some(&ssp), fixed_clock).unwrap();
-        let b2 = synthesize_linked_compliance_bundle(&inputs, &sap, Some(&ssp), fixed_clock).unwrap();
+        let b1 =
+            synthesize_linked_compliance_bundle(&inputs, &sap, Some(&ssp), fixed_clock).unwrap();
+        let b2 =
+            synthesize_linked_compliance_bundle(&inputs, &sap, Some(&ssp), fixed_clock).unwrap();
 
         let json1 = serde_json::to_string_pretty(&b1.assessment_results).unwrap();
         let json2 = serde_json::to_string_pretty(&b2.assessment_results).unwrap();

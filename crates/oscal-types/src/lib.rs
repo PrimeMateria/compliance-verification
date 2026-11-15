@@ -234,7 +234,12 @@ pub struct OscalControlRegistration {
 inventory::collect!(OscalControlRegistration);
 
 impl OscalControlRegistration {
-    pub const fn new(control_id: &'static str, fn_name: &'static str, file: &'static str, line: u32) -> Self {
+    pub const fn new(
+        control_id: &'static str,
+        fn_name: &'static str,
+        file: &'static str,
+        line: u32,
+    ) -> Self {
         Self {
             control_id,
             fn_name,
@@ -276,7 +281,6 @@ pub struct SuppressedFindingItem {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub raw_telemetry: Option<String>,
 }
-
 
 pub mod profile;
 pub use profile::OscalProfileOscalProfileProfile;

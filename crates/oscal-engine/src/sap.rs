@@ -106,7 +106,10 @@ pub fn synthesize_assessment_plan(
     // 2. Derive Assessment Subjects from SSP
     let mut include_subjects = Vec::new();
 
-    if let Some(sys_impl) = ssp_obj.get("system-implementation").and_then(|v| v.as_object()) {
+    if let Some(sys_impl) = ssp_obj
+        .get("system-implementation")
+        .and_then(|v| v.as_object())
+    {
         // Workspace components
         if let Some(components) = sys_impl.get("components").and_then(|v| v.as_array()) {
             for comp in components {
@@ -145,7 +148,10 @@ pub fn synthesize_assessment_plan(
         }
 
         // Leveraged authorizations (inherited CSP sources)
-        if let Some(lev_auths) = sys_impl.get("leveraged-authorizations").and_then(|v| v.as_array()) {
+        if let Some(lev_auths) = sys_impl
+            .get("leveraged-authorizations")
+            .and_then(|v| v.as_array())
+        {
             for auth in lev_auths {
                 if let Some(auth_uuid_str) = auth.get("uuid").and_then(|u| u.as_str()) {
                     let auth_title = auth
@@ -236,12 +242,9 @@ pub fn synthesize_assessment_plan(
     let mut req_to_objectives: HashMap<String, Vec<String>> = HashMap::new();
 
     for req in implemented_reqs {
-        let req_uuid = req
-            .get("uuid")
-            .and_then(|u| u.as_str())
-            .ok_or_else(|| {
-                vec!["SSP implemented-requirement is missing required 'uuid'".to_string()]
-            })?;
+        let req_uuid = req.get("uuid").and_then(|u| u.as_str()).ok_or_else(|| {
+            vec!["SSP implemented-requirement is missing required 'uuid'".to_string()]
+        })?;
 
         let raw_control_id = req
             .get("control-id")
@@ -569,7 +572,11 @@ mod tests {
                     .iter()
                     .any(|p| p["name"] == "phase" && p["value"] == *phase)
             });
-            assert!(found, "Activity for phase '{}' must be present in SAP", phase);
+            assert!(
+                found,
+                "Activity for phase '{}' must be present in SAP",
+                phase
+            );
         }
     }
 
@@ -582,7 +589,8 @@ mod tests {
         let sap = synthesize_assessment_plan(&ssp, None, None, None, true, Some(fixed_now))
             .expect("Degenerate SAP synthesis must succeed");
 
-        let selections = sap["assessment-plan"]["reviewed-controls"]["control-objective-selections"][0]["include-objectives"]
+        let selections = sap["assessment-plan"]["reviewed-controls"]
+            ["control-objective-selections"][0]["include-objectives"]
             .as_array()
             .expect("include-objectives");
 
@@ -607,8 +615,11 @@ mod tests {
                 "uuid": "not-a-valid-uuid"
             }
         });
-        let errs = validate_assessment_plan(&bad_doc).expect_err("Invalid SAP must fail schema validation");
+        let errs = validate_assessment_plan(&bad_doc)
+            .expect_err("Invalid SAP must fail schema validation");
         assert!(!errs.is_empty());
-        assert!(errs.iter().any(|e| e.contains("uuid") || e.contains("metadata")));
+        assert!(errs
+            .iter()
+            .any(|e| e.contains("uuid") || e.contains("metadata")));
     }
 }

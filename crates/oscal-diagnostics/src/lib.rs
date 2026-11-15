@@ -21,6 +21,7 @@ impl DiagnosticEmitter {
     }
 
     /// Renders a Lean 4 unproven `sorry` axiom error [E-OSCAL-004]
+    #[allow(clippy::too_many_arguments)]
     pub fn emit_lean_sorry_error(
         &self,
         source: &str,
@@ -55,6 +56,7 @@ impl DiagnosticEmitter {
     }
 
     /// Renders a Kani assertion failure error [E-OSCAL-002]
+    #[allow(clippy::too_many_arguments)]
     pub fn emit_kani_failure_error(
         &self,
         source: &str,

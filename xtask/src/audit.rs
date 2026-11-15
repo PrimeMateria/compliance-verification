@@ -123,7 +123,15 @@ pub fn audit_limits(root: &Path) -> Result<(), Fail> {
     let sources = shipped_sources(root)?;
     // The only error type a shipped crate may name, plus the declaration check at
     // a declared boundary, which is not the operation failing.
-    let sanctioned = ["NotAProduct", "ObservedBound", "KappaError", "Vec", "String", "Box", "Error"];
+    let sanctioned = [
+        "NotAProduct",
+        "ObservedBound",
+        "KappaError",
+        "Vec",
+        "String",
+        "Box",
+        "Error",
+    ];
 
     let mut violations = Vec::new();
     for src in &sources {
