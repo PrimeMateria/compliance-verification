@@ -196,9 +196,7 @@ pub fn execute_monitor(config: &MonitorConfig) -> MonitorReport {
     let mut has_policy_violation = false;
 
     let resolve_path = |p: &Path| -> PathBuf {
-        if p.is_absolute() {
-            p.to_path_buf()
-        } else if p.starts_with(&config.repo_root) {
+        if p.is_absolute() || p.starts_with(&config.repo_root) {
             p.to_path_buf()
         } else {
             config.repo_root.join(p)

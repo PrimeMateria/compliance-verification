@@ -188,6 +188,9 @@ pub struct LeanAttestationToolchain {
 }
 
 /// Emits a D1 Lean attestation document
+// The arguments are the document's fields in schema order; a parameter struct
+// would only restate the document it constructs.
+#[allow(clippy::too_many_arguments)]
 pub fn create_lean_attestation(
     control_id: &str,
     component: &str,
@@ -327,6 +330,9 @@ pub struct GateDecisionDocument {
 
 pub type GateDecision = GateDecisionDocument;
 
+// The arguments are the document's fields in schema order; a parameter struct
+// would only restate the document it constructs.
+#[allow(clippy::too_many_arguments)]
 pub fn create_gate_decision(
     timestamp: &str,
     git_sha: &str,

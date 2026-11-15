@@ -227,6 +227,9 @@ pub fn collect_host_toolchains() -> BTreeMap<String, String> {
 }
 
 /// Writes an atomic timestamped history record to `artifacts/oscal/history/<timestamp>_<git-sha>/`
+// The arguments are the record's fields in schema order; a parameter struct
+// would only restate the record it writes.
+#[allow(clippy::too_many_arguments)]
 pub fn emit_history_record(
     history_root: &Path,
     record_kind: &str, // "build" | "release"
@@ -399,7 +402,7 @@ pub fn prune_history_records(
     }
 
     // Sort ascending by timestamp (oldest first)
-    records.sort_by(|a, b| a.timestamp.cmp(&b.timestamp));
+    records.sort_by_key(|a| a.timestamp);
 
     let mut surplus = records.len() - config.max_records;
     let mut pruned = Vec::new();

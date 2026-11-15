@@ -181,19 +181,10 @@ pub struct PoamDefectInput {
 }
 
 /// Configuration caps and deadline rules for continuous POA&M tracking
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Default)]
 pub struct PoamCapsConfig {
     pub max_open_items: Option<usize>,
     pub fail_on_overdue: bool,
-}
-
-impl Default for PoamCapsConfig {
-    fn default() -> Self {
-        Self {
-            max_open_items: None,
-            fail_on_overdue: false,
-        }
-    }
 }
 
 /// Telemetry outcome of POA&M state synchronization
@@ -541,7 +532,7 @@ pub fn sync_poam_state(
     }
 
     // Sort items deterministically by UUID string
-    final_poam_items.sort_by(|a, b| a.uuid.cmp(&b.uuid));
+    final_poam_items.sort_by_key(|a| a.uuid);
 
     if let Some(cfg) = caps {
         if let Some(max_open) = cfg.max_open_items {
@@ -590,9 +581,7 @@ pub fn sync_poam_state(
     let poam_val = serde_json::to_value(&poam_doc)
         .map_err(|e| vec![format!("Failed to serialize POA&M document: {}", e)])?;
 
-    if let Err(errs) = validate_poam(&poam_val) {
-        return Err(errs);
-    }
+    validate_poam(&poam_val)?;
 
     Ok((poam_doc, outcome))
 }
@@ -675,7 +664,7 @@ mod tests {
         };
 
         // 1. Initial defect discovery
-        let (doc1, out1) = sync_poam_state(None, &[defect.clone()], now, None).unwrap();
+        let (doc1, out1) = sync_poam_state(None, std::slice::from_ref(&defect), now, None).unwrap();
         assert_eq!(out1.new_items.len(), 1);
         let defect_uuid = out1.new_items[0];
         assert_eq!(

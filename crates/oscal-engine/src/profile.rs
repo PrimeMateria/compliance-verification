@@ -936,13 +936,13 @@ pub fn assert_resolved_catalog_not_skeleton(
         .and_then(|p| p.as_array())
     {
         for p in props {
-            if p.get("name").and_then(|n| n.as_str()) == Some("resolution-status") {
-                if p.get("value").and_then(|v| v.as_str()) == Some("skeleton") {
-                    return Err(ProfileError::General(
-                        "Resolved catalog retained 'resolution-status = skeleton'; concrete resolution required before downstream synthesis"
-                            .to_string(),
-                    ));
-                }
+            if p.get("name").and_then(|n| n.as_str()) == Some("resolution-status")
+                && p.get("value").and_then(|v| v.as_str()) == Some("skeleton")
+            {
+                return Err(ProfileError::General(
+                    "Resolved catalog retained 'resolution-status = skeleton'; concrete resolution required before downstream synthesis"
+                        .to_string(),
+                ));
             }
         }
     }

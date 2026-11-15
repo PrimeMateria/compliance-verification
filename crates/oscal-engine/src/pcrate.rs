@@ -141,12 +141,9 @@ fn collect_relative_files(
         if path.is_dir() {
             files.extend(collect_relative_files(base_dir, &path)?);
         } else if path.is_file() {
-            let rel = path.strip_prefix(base_dir).map_err(|e| {
-                std::io::Error::new(
-                    std::io::ErrorKind::Other,
-                    format!("Strip prefix failed: {}", e),
-                )
-            })?;
+            let rel = path
+                .strip_prefix(base_dir)
+                .map_err(|e| std::io::Error::other(format!("Strip prefix failed: {}", e)))?;
             files.push(rel.to_path_buf());
         }
     }
@@ -189,11 +186,11 @@ pub fn assemble_pcrate(
     let pkg_table = cargo_toml_val
         .get("package")
         .and_then(|p| p.as_table())
-        .ok_or_else(|| "Missing [package] table in Cargo.toml")?;
+        .ok_or("Missing [package] table in Cargo.toml")?;
     let crate_name = pkg_table
         .get("name")
         .and_then(|n| n.as_str())
-        .ok_or_else(|| "Missing package.name in Cargo.toml")?
+        .ok_or("Missing package.name in Cargo.toml")?
         .to_string();
     let crate_version = pkg_table
         .get("version")

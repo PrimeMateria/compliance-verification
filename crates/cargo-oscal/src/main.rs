@@ -442,7 +442,7 @@ pub fn verify_manifest_declarations_with_clock(
     // 2. Validate policy risk_accepted caps if present
     if let Some(cfg) = policy_config.and_then(|p| p.policy.risk_accepted.as_ref()) {
         if let Some(max_f) = cfg.max_fraction {
-            if max_f < 0.0 || max_f > 1.0 {
+            if !(0.0..=1.0).contains(&max_f) {
                 errors.push(format!(
                     "policy.risk_accepted.max_fraction ({}) must be between 0.0 and 1.0",
                     max_f
@@ -1012,6 +1012,7 @@ fn execute_verify_evidence(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn execute_monitor_cli(
     audit_ttl: Option<&str>,
     fail_on_stale: bool,
@@ -1214,6 +1215,7 @@ fn execute_generate_sap(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn synthesize_staging_evidence(
     synthesis_inputs: &[SynthesisInput],
     policy_config: Option<&GatePolicyConfig>,
@@ -1576,7 +1578,7 @@ pub fn synthesize_staging_evidence(
     }
 
     let unique_controls = unique_set.len() as u64;
-    let numerator = (tier_sat_count + risk_accepted_count) as u64;
+    let numerator = tier_sat_count + risk_accepted_count;
     let denominator = if let Some(tr) = tailoring_report {
         tr.denominator as u64
     } else {
@@ -2012,8 +2014,6 @@ fn execute_build(
                         } else {
                             EvidenceTier::StaticCheck
                         }
-                    } else if pkg_kani_passed && ctrl.evidence.iter().any(|s| s == "kani") {
-                        EvidenceTier::FormalKernel
                     } else {
                         EvidenceTier::FormalKernel
                     }
@@ -3766,6 +3766,7 @@ pub fn run_package(
 
 /// Atomically promote compliance artifacts (SSP, SAP, AR, POA&M, Suppressed Findings, Native Evidence)
 /// to the production release directory under transactional rollback discipline.
+#[allow(clippy::too_many_arguments)]
 pub fn transactional_promote_compliance_artifacts(
     prod_dir: &Path,
     staging_ssp: Option<&Path>,

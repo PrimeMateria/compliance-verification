@@ -476,23 +476,14 @@ pub fn synthesize_linked_compliance_bundle(
                 };
 
                 // Emit observation bound to active verification activity
-                let (act_uuid, act_phase, method) = if input.required_tier
-                    >= EvidenceTier::FormalKernel
-                    && default_lean_act.is_some()
+                let (act_uuid, act_phase, method) = if let Some(act) =
+                    default_lean_act.filter(|_| input.required_tier >= EvidenceTier::FormalKernel)
                 {
-                    (
-                        default_lean_act.unwrap(),
-                        ACTIVITY_PHASE_LEAN4_KERNEL,
-                        "FORMAL_VERIFICATION",
-                    )
-                } else if input.required_tier >= EvidenceTier::Symbolic
-                    && default_kani_act.is_some()
+                    (act, ACTIVITY_PHASE_LEAN4_KERNEL, "FORMAL_VERIFICATION")
+                } else if let Some(act) =
+                    default_kani_act.filter(|_| input.required_tier >= EvidenceTier::Symbolic)
                 {
-                    (
-                        default_kani_act.unwrap(),
-                        ACTIVITY_PHASE_KANI_CBMC,
-                        "FORMAL_VERIFICATION",
-                    )
+                    (act, ACTIVITY_PHASE_KANI_CBMC, "FORMAL_VERIFICATION")
                 } else {
                     (
                         default_test_act
@@ -947,13 +938,13 @@ pub fn synthesize_linked_compliance_bundle(
 
     // Every AR finding must resolve to a valid SAP objective
     for find in &findings {
-        if find.target.r#type == "objective-id" {
-            if !sap_meta.objectives.contains_key(&find.target.target_id) {
-                return Err(vec![format!(
-                    "[E-OSCAL-017] Orphaned assessment finding: finding '{}' references missing objective target '{}'",
-                    find.uuid, find.target.target_id
-                )]);
-            }
+        if find.target.r#type == "objective-id"
+            && !sap_meta.objectives.contains_key(&find.target.target_id)
+        {
+            return Err(vec![format!(
+                "[E-OSCAL-017] Orphaned assessment finding: finding '{}' references missing objective target '{}'",
+                find.uuid, find.target.target_id
+            )]);
         }
         if let Some(ir_uuid) = find.implementation_statement_uuid {
             if let Some(ref valid_ssp_ir) = ssp_ir_uuids {

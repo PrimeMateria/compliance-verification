@@ -11,9 +11,9 @@ name = "cargo-oscal"
 path = "src/main.rs"
 
 [dependencies]
-oscal-types = { path = "../oscal-types" }
-oscal-engine = { path = "../oscal-engine" }
-oscal-diagnostics = { path = "../oscal-diagnostics" }
+oscal-types = { version = "0.1.0", path = "../oscal-types" }
+oscal-engine = { version = "0.1.0", path = "../oscal-engine" }
+oscal-diagnostics = { version = "0.1.0", path = "../oscal-diagnostics" }
 clap.workspace = true
 serde.workspace = true
 serde_json.workspace = true

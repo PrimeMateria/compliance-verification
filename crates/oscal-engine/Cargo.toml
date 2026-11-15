@@ -10,8 +10,8 @@ license.workspace = true
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(kani)'] }
 
 [dependencies]
-oscal-types = { path = "../oscal-types" }
-oscal-diagnostics = { path = "../oscal-diagnostics" }
+oscal-types = { version = "0.1.0", path = "../oscal-types" }
+oscal-diagnostics = { version = "0.1.0", path = "../oscal-diagnostics" }
 serde.workspace = true
 serde_json.workspace = true
 toml.workspace = true
