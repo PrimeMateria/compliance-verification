@@ -1,8 +1,8 @@
 {
-  "name": "Template contract",
+  "name": "OSCAL Engine Contract Checker",
   "shortName": "Contract",
-  "live": "https://uor-foundation.github.io/template/",
-  "purpose": "Checks each universal policy file of a UOR template repository against its locked digest. Send the six expected and observed digests; it answers conformant, or names every file that drifted, and invalid request for anything else.",
+  "live": "https://primemateria.github.io/oscal-engine/",
+  "purpose": "The contract checker shipped with PrimeMateria/oscal-engine. It compares the six locked policy-file digests and reports drift; it does not evaluate OSCAL controls or certify the engine's compliance decisions.",
   "inputLabel": "Expected and observed digests",
   "placeholder": "hex: followed by 384 bytes",
   "submitLabel": "Check",
@@ -17,8 +17,8 @@
     "refusal": "invalid request"
   },
   "promise": {
-    "headline": "Says conformant exactly when every policy file matches its lock.",
-    "detail": "Each of the six universal policy files is compared with the digest the lock records, and any file that drifted is named."
+    "headline": "Checks the six policy-file digests locked for OSCAL Engine.",
+    "detail": "The built-in contract checker reports conformant only when all six observed digests match their recorded values, and names any drift. It does not verify OSCAL control evaluations."
   },
   "claim": "TC-01: the checker answers conformant exactly when every universal policy file's observed digest equals its locked digest.",
   "proposition": {
@@ -65,14 +65,14 @@
   ],
   "attestations": {
     "proof": {
-      "id": "not recorded for the template's own app; an instance records the UOR MCP server's attestation here",
-      "url": "https://github.com/UOR-Foundation/template/actions/workflows/bootstrap.yml"
+      "id": "Per-run proof ID appears in the bootstrap acceptance log",
+      "url": "https://github.com/PrimeMateria/oscal-engine/actions/workflows/bootstrap.yml"
     },
     "build": {
-      "id": "printed by prismpm verify in every pages run; an instance records it here",
-      "url": "https://github.com/UOR-Foundation/template/actions/workflows/pages.yml"
+      "id": "Holo fingerprint inserted by pages.yml for each signed build",
+      "url": "https://github.com/PrimeMateria/oscal-engine/actions/workflows/pages.yml"
     }
   },
-  "repository": "https://github.com/UOR-Foundation/template",
-  "report": "https://github.com/UOR-Foundation/template/blob/main/TEMPLATE-VERIFICATION.md"
+  "repository": "https://github.com/PrimeMateria/oscal-engine",
+  "report": "https://github.com/PrimeMateria/oscal-engine/blob/main/TEMPLATE-VERIFICATION.md"
 }
