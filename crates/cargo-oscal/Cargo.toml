@@ -20,7 +20,7 @@ serde_json.workspace = true
 toml.workspace = true
 uuid.workspace = true
 chrono.workspace = true
-sha2 = "0.10"
+sha2 = "0.11"
 
 [package.metadata.oscal]
 component_title = "PRIME Compiler Orchestrator CLI"

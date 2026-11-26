@@ -18,7 +18,7 @@ toml.workspace = true
 uuid.workspace = true
 chrono.workspace = true
 jsonschema.workspace = true
-sha2 = "0.10"
+sha2 = "0.11"
 
 [package.metadata.oscal]
 component_title = "PRIME OSCAL Compliance Engine"

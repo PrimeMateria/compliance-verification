@@ -12,4 +12,4 @@ serde_json.workspace = true
 uuid.workspace = true
 chrono.workspace = true
 inventory.workspace = true
-regress = "=0.10.5"
+regress = "=0.12.0"

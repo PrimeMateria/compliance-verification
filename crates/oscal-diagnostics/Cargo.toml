@@ -10,5 +10,5 @@ license.workspace = true
 annotate-snippets.workspace = true
 
 [build-dependencies]
-toml = "0.8"
+toml = "1.2"
 serde = { version = "1.0", features = ["derive"] }
